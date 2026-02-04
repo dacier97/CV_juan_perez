@@ -10,11 +10,12 @@ export const mockCVData = {
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=400&h=400",
       "https://images.unsplash.com/photo-1554151228-14d9def656e4?auto=format&fit=crop&q=80&w=400&h=400"
     ],
-    contactInfo: [
-      { id: 1, type: "email", value: "daniel.ortiz@ejemplo.com" },
-      { id: 2, type: "phone", value: "+57 321 000 0000" },
-      { id: 3, type: "location", value: "Bogotá, Colombia" },
-    ],
+    contactInfo: {
+      email: "daniel.ortiz@ejemplo.com",
+      phone: "+57 321 000 0000",
+      linkedin: "linkedin.com/in/danielortiz",
+      github: "github.com/danielortiz"
+    },
   },
   objective: "Ingeniero electrónico con experiencia en dirección y gestión estratégica de proyectos tecnológicos. Especialista en transformación digital, software, redes y ciberseguridad, aplicando Scrum y PMI para asegurar eficiencia y cumplimiento de objetivos. Resuelvo desafíos de integración tecnológica, automatización y continuidad operativa, liderando equipos multidisciplinarios. Impacto en telecomunicaciones, infraestructura TI, analítica de datos, energía y soluciones digitales empresariales.",
   skills: {

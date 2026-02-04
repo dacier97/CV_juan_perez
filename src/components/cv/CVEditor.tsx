@@ -82,13 +82,13 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
         });
     };
 
-    const updateContact = (id: number, value: string) => {
-        const newContact = data.personalInfo.contactInfo.map((ci: any) =>
-            ci.id === id ? { ...ci, value } : ci
-        );
+    const updateContact = (field: string, value: string) => {
         onChange({
             ...data,
-            personalInfo: { ...data.personalInfo, contactInfo: newContact }
+            personalInfo: {
+                ...data.personalInfo,
+                contactInfo: { ...data.personalInfo.contactInfo, [field]: value }
+            }
         });
     };
 
@@ -311,16 +311,40 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                         <div className="space-y-4">
                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Contacto</h4>
                             <div className="grid grid-cols-1 gap-3">
-                                {data.personalInfo.contactInfo.map((ci: any) => (
-                                    <div key={ci.id} className="flex gap-4 items-center">
-                                        <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">{ci.type}</div>
-                                        <input
-                                            value={ci.value}
-                                            onChange={(e) => updateContact(ci.id, e.target.value)}
-                                            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
-                                        />
-                                    </div>
-                                ))}
+                                <div className="flex gap-4 items-center">
+                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">Email</div>
+                                    <input
+                                        value={data.personalInfo.contactInfo?.email || ''}
+                                        onChange={(e) => updateContact('email', e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
+                                    />
+                                </div>
+                                <div className="flex gap-4 items-center">
+                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">Teléfono</div>
+                                    <input
+                                        value={data.personalInfo.contactInfo?.phone || ''}
+                                        onChange={(e) => updateContact('phone', e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
+                                    />
+                                </div>
+                                <div className="flex gap-4 items-center">
+                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">LinkedIn</div>
+                                    <input
+                                        value={data.personalInfo.contactInfo?.linkedin || ''}
+                                        onChange={(e) => updateContact('linkedin', e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
+                                        placeholder="Opcional"
+                                    />
+                                </div>
+                                <div className="flex gap-4 items-center">
+                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">GitHub</div>
+                                    <input
+                                        value={data.personalInfo.contactInfo?.github || ''}
+                                        onChange={(e) => updateContact('github', e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
+                                        placeholder="Opcional"
+                                    />
+                                </div>
                             </div>
                         </div>
 

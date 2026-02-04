@@ -13,9 +13,10 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                 <header className="border-b-2 border-gray-900 pb-6 mb-8 text-center">
                     <h1 className="text-4xl font-bold uppercase tracking-tight text-black mb-2">{personalInfo.name} {personalInfo.lastName}</h1>
                     <div className="flex flex-wrap justify-center gap-4 text-sm font-medium">
-                        {personalInfo.contactInfo.map((info: any) => (
-                            <span key={info.id}>{info.value}</span>
-                        ))}
+                        {personalInfo.contactInfo?.email && <span>{personalInfo.contactInfo.email}</span>}
+                        {personalInfo.contactInfo?.phone && <span>{personalInfo.contactInfo.phone}</span>}
+                        {personalInfo.contactInfo?.linkedin && <span>{personalInfo.contactInfo.linkedin}</span>}
+                        {personalInfo.contactInfo?.github && <span>{personalInfo.contactInfo.github}</span>}
                     </div>
                 </header>
 
@@ -131,12 +132,38 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section>
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-4 md:mb-6 text-foreground font-display">Datos de Contacto</h3>
                         <ul className="space-y-3 md:space-y-4">
-                            {personalInfo.contactInfo.map((info: any) => (
-                                <li key={info.id} className="flex items-center gap-3 md:gap-4 group">
+                            {personalInfo.contactInfo?.email && (
+                                <li className="flex items-center gap-3 md:gap-4 group">
                                     <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
-                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">{info.value}</span>
+                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
+                                        {personalInfo.contactInfo.email}
+                                    </span>
                                 </li>
-                            ))}
+                            )}
+                            {personalInfo.contactInfo?.phone && (
+                                <li className="flex items-center gap-3 md:gap-4 group">
+                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
+                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
+                                        {personalInfo.contactInfo.phone}
+                                    </span>
+                                </li>
+                            )}
+                            {personalInfo.contactInfo?.linkedin && (
+                                <li className="flex items-center gap-3 md:gap-4 group">
+                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
+                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
+                                        {personalInfo.contactInfo.linkedin}
+                                    </span>
+                                </li>
+                            )}
+                            {personalInfo.contactInfo?.github && (
+                                <li className="flex items-center gap-3 md:gap-4 group">
+                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
+                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
+                                        {personalInfo.contactInfo.github}
+                                    </span>
+                                </li>
+                            )}
                         </ul>
                     </section>
 
