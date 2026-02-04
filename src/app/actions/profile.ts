@@ -3,6 +3,44 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 
+// Helper to guarantee safe data structure
+function normalizeProfile(data: any) {
+    if (!data) return null;
+
+    return {
+        ...data,
+        full_name: data.full_name || '',
+        role: data.role || '',
+        bio: data.bio || '', // This maps to 'objective' in frontend often, but we keep DB name
+
+        // Ensure arrays exist
+        skills: {
+            professional: Array.isArray(data.skills?.professional) ? data.skills.professional : []
+        },
+        experience: Array.isArray(data.experience) ? data.experience.map((exp: any) => ({
+            ...exp,
+            bullets: Array.isArray(exp?.bullets) ? exp.bullets : []
+        })) : [],
+        education: Array.isArray(data.education) ? data.education : [],
+
+        // Ensure object exists
+        contact_info: data.contact_info || {
+            email: '',
+            phone: '',
+            linkedin: '',
+            github: ''
+        },
+
+        // Ensure gallery is an array of strings
+        avatar_gallery: Array.isArray(data.avatar_gallery)
+            ? data.avatar_gallery
+            : ['', '', ''],
+
+        // Fallback for avatar
+        avatar_url: data.avatar_url || ''
+    };
+}
+
 export async function getProfile() {
     const supabase = await createClient()
 
@@ -20,7 +58,7 @@ export async function getProfile() {
         return null
     }
 
-    return data
+    return normalizeProfile(data)
 }
 
 export async function getPublicProfile() {
@@ -39,7 +77,7 @@ export async function getPublicProfile() {
         return null
     }
 
-    return data
+    return normalizeProfile(data)
 }
 
 export async function updateProfile(formData: FormData) {
