@@ -39,6 +39,13 @@ export interface ProfileData {
     objective: string;
     themeColor: string;
 }
+export interface Document {
+    id: string;
+    name: string;
+    file_url: string;
+    created_at: string;
+    user_id: string;
+}
 
 // Server Action Response Types
 export interface ActionSuccess {

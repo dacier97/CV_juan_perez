@@ -134,10 +134,15 @@ const Navbar = ({
                 )}
 
                 <button
-                    onClick={() => {
-                        if (typeof window !== 'undefined') {
-                            navigator.clipboard.writeText(window.location.href);
-                            alert('Enlace copiado al portapapeles');
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        if (typeof window !== 'undefined' && navigator.clipboard) {
+                            try {
+                                await navigator.clipboard.writeText(window.location.href);
+                                alert('Enlace copiado al portapapeles');
+                            } catch (err) {
+                                console.error('Error al copiar:', err);
+                            }
                         }
                     }}
                     className="flex items-center gap-2 p-2 lg:px-4 lg:py-2.5 text-sm font-bold text-gray-500 hover:text-foreground hover:bg-gray-50 rounded-xl transition-all mr-2"

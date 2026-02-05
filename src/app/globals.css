@@ -105,13 +105,20 @@ body {
   }
 }
 
-/* Hide Vercel Toolbar in production */
+/* Hide Vercel Toolbar and all Vercel injected elements in production */
+[class*="vercel"],
+[id*="vercel"],
 #__vercel_toolbar,
 [data-vercel-toolbar],
 iframe[title*="Vercel"],
-iframe[src*="vercel"] {
+iframe[src*="vercel"],
+.vercel-toolbar-container {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
 }
