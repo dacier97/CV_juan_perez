@@ -13,6 +13,8 @@ import DocumentManager from '@/components/ui/DocumentManager';
 import { LogIn } from 'lucide-react';
 import { ProfileData } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
+import { useCVStore } from '@/lib/store';
+import { useAutoSave } from '@/lib/useAutoSave';
 
 export default function UnifiedPage({ initialUser }: { initialUser: User | null }) {
     const router = useRouter();
@@ -24,9 +26,15 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
-    const [cvData, setCvData] = useState<ProfileData | null>(null);
+
+    // Store global
+    const { cvData, setCVData } = useCVStore();
+
     const [viewMode, setViewMode] = useState<'edit' | 'preview'>('preview');
     const [isAtsFriendly, setIsAtsFriendly] = useState(false);
+
+    // Activar Autosave
+    useAutoSave();
 
     // useEffect solicitado exactamente
     useEffect(() => {
@@ -45,14 +53,18 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         return () => listener.subscription.unsubscribe();
     }, [supabase]);
 
-    // Load content data (Public) - Now using normalized data directly
+    // Load content data (Public)
     useEffect(() => {
         async function loadContent() {
             const profile = await getPublicProfile();
-            setCvData(profile); // Already normalized with all defaults
+            // Solo sobreescribimos si no hay datos en la store o si es la carga inicial
+            // En una app tipo Google Docs, usualmente el servidor manda sobre el localStorage
+            // a menos que estemos offline. Por simplicidad y robustez:
+            setCVData(profile);
+            setLoading(false);
         }
         loadContent();
-    }, [user]);
+    }, [user, setCVData]);
 
     const requireAuth = (action: () => void) => {
         if (!user) {
@@ -62,10 +74,11 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         action();
     };
 
+    // handleSave se mantiene como backup manual pero ahora es automático
     const handleSave = async () => {
-        if (!cvData) return; // Guard against null
+        if (!cvData) return;
         requireAuth(async () => {
-            if (!cvData) return; // Double guard inside async
+            if (!cvData) return;
             const formData = new FormData();
             formData.append('full_name', `${cvData.personalInfo.name} ${cvData.personalInfo.lastName}`);
             formData.append('role', cvData.personalInfo.role);
@@ -78,10 +91,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
 
             const result = await updateProfile(formData);
             if (result.success) {
-                router.refresh();
-                alert('¡Perfil actualizado con éxito!');
-            } else {
-                alert('Error: ' + result.error);
+                alert('¡Guardado manual completado!');
             }
         });
     };
@@ -92,8 +102,8 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     };
 
     const handleColorChange = (color: string) => {
-        if (!cvData) return; // Guard against null
-        setCvData({ ...cvData, themeColor: color });
+        if (!cvData) return;
+        setCVData({ ...cvData, themeColor: color });
     };
 
     // Mientras loading o cvData no está listo: return null
@@ -149,7 +159,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                     <div className="max-w-5xl mx-auto space-y-8">
                         {viewMode === 'edit' && !!user ? (
                             <div className="animate-in fade-in zoom-in-95 duration-300">
-                                <CVEditor data={cvData} onChange={setCvData} />
+                                <CVEditor data={cvData} onChange={setCVData} />
                             </div>
                         ) : (
                             <div className="animate-in fade-in zoom-in-95 duration-300 cv-print-container">

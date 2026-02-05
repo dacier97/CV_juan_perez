@@ -1,6 +1,10 @@
-import { Share2, Download, Eye, Save, Menu, Edit3, ChevronDown, CheckCircle, Linkedin, Instagram, Facebook } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { useCVStore } from '@/lib/store';
+import {
+    Share2, Download, Eye, Menu, Edit3, ChevronDown, CheckCircle,
+    Linkedin, Instagram, Facebook, Cloud, CloudCheck, Loader2
+} from 'lucide-react';
 
 const Navbar = ({
     user,
@@ -19,6 +23,9 @@ const Navbar = ({
     onDownloadPremium: () => void,
     onDownloadAts: () => void
 }) => {
+    // Store global
+    const { cvData, setCVData, isSaving, lastSaved } = useCVStore();
+
     const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
     const socialLinks = {
@@ -103,9 +110,30 @@ const Navbar = ({
             </div>
 
             <div className="flex items-center gap-1 lg:gap-4 font-display">
-                {/* Admin Buttons - Conditionally Rendered */}
+                {/* Admin Buttons & Auto-save status */}
                 {!!user && (
                     <>
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100">
+                            {isSaving ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin text-primary" />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Guardando...</span>
+                                </>
+                            ) : lastSaved ? (
+                                <>
+                                    <CloudCheck size={14} className="text-green-500" />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Guardado {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Cloud size={14} className="text-gray-300" />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Listo para editar</span>
+                                </>
+                            )}
+                        </div>
+
                         <button
                             onClick={onToggleView}
                             className="flex items-center gap-2 p-2 lg:px-5 lg:py-2.5 text-sm font-bold text-gray-500 hover:text-foreground hover:bg-gray-50 rounded-xl transition-all"
@@ -121,13 +149,6 @@ const Navbar = ({
                                     <span className="hidden lg:inline">Vista Previa</span>
                                 </>
                             )}
-                        </button>
-                        <button
-                            onClick={onSave}
-                            className="flex items-center gap-2 p-2 lg:px-5 lg:py-2.5 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-all"
-                        >
-                            <Save size={18} />
-                            <span className="hidden lg:inline">Guardar</span>
                         </button>
                         <div className="hidden lg:block w-px h-6 bg-gray-100 mx-2"></div>
                     </>
