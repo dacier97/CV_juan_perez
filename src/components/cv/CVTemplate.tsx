@@ -1,7 +1,15 @@
 import Image from 'next/image';
+import { ProfileData } from '@/lib/types';
 
-const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?: boolean }) => {
-    if (!data) return null;
+interface CVTemplateProps {
+    data: ProfileData;
+    isAtsFriendly?: boolean;
+}
+
+const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
+    // Basic guard, though parent should handle this
+    if (!data || !data.personalInfo) return null;
+
     const { personalInfo, objective, skills, experience, education, themeColor } = data;
     const secondaryColor = themeColor || "#FF5E1A";
 
@@ -15,8 +23,6 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <div className="flex flex-wrap justify-center gap-4 text-sm font-medium">
                         {personalInfo.contactInfo?.email && <span>{personalInfo.contactInfo.email}</span>}
                         {personalInfo.contactInfo?.phone && <span>{personalInfo.contactInfo.phone}</span>}
-                        {personalInfo.contactInfo?.linkedin && <span>{personalInfo.contactInfo.linkedin}</span>}
-                        {personalInfo.contactInfo?.github && <span>{personalInfo.contactInfo.github}</span>}
                     </div>
                 </header>
 
@@ -31,7 +37,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section>
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Experiencia Laboral</h2>
                         <div className="space-y-8">
-                            {experience.map((exp: any) => (
+                            {(experience || []).map((exp) => (
                                 <div key={exp.id}>
                                     <div className="flex justify-between items-baseline mb-1">
                                         <h3 className="text-base font-bold text-black uppercase">{exp.title}</h3>
@@ -39,7 +45,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                                     </div>
                                     <p className="text-sm italic mb-3 text-justify">{exp.description}</p>
                                     <ul className="list-disc ml-5 space-y-1">
-                                        {exp.bullets.map((bullet: string, idx: number) => (
+                                        {(exp.bullets || []).map((bullet, idx) => (
                                             <li key={idx} className="text-sm text-justify">{bullet}</li>
                                         ))}
                                     </ul>
@@ -52,7 +58,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section>
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Estudios y Certificaciones</h2>
                         <div className="space-y-6">
-                            {education?.map((edu: any) => (
+                            {(education || []).map((edu) => (
                                 <div key={edu.id} className="flex justify-between items-baseline">
                                     <div>
                                         <h3 className="text-base font-bold uppercase">{edu.degree}</h3>
@@ -68,7 +74,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section>
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Habilidades</h2>
                         <div className="flex flex-wrap gap-x-6 gap-y-2">
-                            {skills.professional.map((skill: string, index: number) => (
+                            {(skills.professional || []).map((skill, index) => (
                                 <span key={index} className="text-sm flex items-center gap-2">
                                     • {skill}
                                 </span>
@@ -91,12 +97,18 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
 
                     {/* Image Container with explicit aspect ratio to prevent deformation */}
                     <div className="relative w-44 h-56 md:w-56 md:h-64 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 shadow-sm z-0">
-                        <img
-                            src={personalInfo.photo}
-                            alt={`${personalInfo.name} ${personalInfo.lastName}`}
-                            crossOrigin="anonymous"
-                            className="w-full h-full object-cover print:block transition-transform duration-700 group-hover:scale-105"
-                        />
+                        {personalInfo.photo ? (
+                            <img
+                                src={personalInfo.photo}
+                                alt={`${personalInfo.name} ${personalInfo.lastName}`}
+                                crossOrigin="anonymous"
+                                className="w-full h-full object-cover print:block transition-transform duration-700 group-hover:scale-105"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">
+                                No Photo
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -148,22 +160,6 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                                     </span>
                                 </li>
                             )}
-                            {personalInfo.contactInfo?.linkedin && (
-                                <li className="flex items-center gap-3 md:gap-4 group">
-                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
-                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
-                                        {personalInfo.contactInfo.linkedin}
-                                    </span>
-                                </li>
-                            )}
-                            {personalInfo.contactInfo?.github && (
-                                <li className="flex items-center gap-3 md:gap-4 group">
-                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
-                                    <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground break-all">
-                                        {personalInfo.contactInfo.github}
-                                    </span>
-                                </li>
-                            )}
                         </ul>
                     </section>
 
@@ -172,7 +168,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                         <div>
                             <h4 className="text-[10px] md:text-xs font-black uppercase text-gray-400 mb-4 md:mb-6 tracking-[0.2em] border-b border-gray-100 pb-2">Profesional</h4>
                             <ul className="space-y-3 md:space-y-4">
-                                {skills.professional.map((skill: string, index: number) => (
+                                {(skills.professional || []).map((skill, index) => (
                                     <li key={index} className="flex items-center gap-3 md:gap-4 group">
                                         <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-foreground rounded-full transition-transform group-hover:scale-125"></span>
                                         <span className="text-xs md:text-sm font-medium text-gray-600 transition-colors group-hover:text-foreground">{skill}</span>
@@ -198,7 +194,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section className="mb-16">
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-8 md:mb-12 text-foreground font-display">Experiencia Laboral</h3>
                         <div className="space-y-10 md:space-y-16">
-                            {experience.map((exp: any) => (
+                            {(experience || []).map((exp) => (
                                 <div key={exp.id} className="relative group">
                                     <div className="mb-4 md:mb-6">
                                         <p className="text-[10px] md:text-xs font-black text-gray-400 mb-2 md:mb-3 tracking-[0.2em] uppercase">{exp.period}</p>
@@ -206,7 +202,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                                     </div>
                                     <p className="text-xs md:text-[14px] leading-relaxed text-gray-600 mb-4 md:mb-6 font-medium text-justify">{exp.description}</p>
                                     <ul className="space-y-2 md:space-y-3">
-                                        {exp.bullets.map((bullet: string, idx: number) => (
+                                        {(exp.bullets || []).map((bullet, idx) => (
                                             <li key={idx} className="flex gap-2 md:gap-3 text-xs md:text-[14px] text-gray-600 leading-relaxed font-sans text-justify">
                                                 <span
                                                     className="mt-1.5 md:mt-2 w-1 md:w-1.5 h-1 md:h-1.5 rounded-full flex-shrink-0"
@@ -225,7 +221,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: { data: any, isAtsFriendly?
                     <section>
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-8 md:mb-12 text-foreground font-display">ESTUDIOS Y CERTIFICACIONES</h3>
                         <div className="space-y-10">
-                            {education?.map((edu: any) => (
+                            {(education || []).map((edu) => (
                                 <div key={edu.id} className="relative group">
                                     <div className="mb-2">
                                         <p className="text-[10px] md:text-xs font-black text-gray-400 mb-2 tracking-[0.2em] uppercase">{edu.period}</p>

@@ -7,13 +7,14 @@ import CVTemplate from "@/components/cv/CVTemplate";
 import Sidebar from "@/components/ui/Sidebar";
 import Navbar from "@/components/ui/Navbar";
 import CVEditor from "@/components/cv/CVEditor";
-import { mockCVData } from "@/lib/mockData";
 import { signOut } from '@app/actions/auth';
 import { getPublicProfile, updateProfile } from '@app/actions/profile';
 import DocumentManager from '@/components/ui/DocumentManager';
 import { LogIn } from 'lucide-react';
+import { ProfileData } from '@/lib/types';
+import type { User } from '@supabase/supabase-js';
 
-export default function UnifiedPage({ initialUser }: { initialUser: any }) {
+export default function UnifiedPage({ initialUser }: { initialUser: User | null }) {
     const router = useRouter();
     const [supabase] = useState(() => createClient());
 
@@ -23,7 +24,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: any }) {
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
-    const [cvData, setCvData] = useState<any>(null);
+    const [cvData, setCvData] = useState<ProfileData | null>(null);
     const [viewMode, setViewMode] = useState<'edit' | 'preview'>('preview');
     const [isAtsFriendly, setIsAtsFriendly] = useState(false);
 
@@ -44,37 +45,11 @@ export default function UnifiedPage({ initialUser }: { initialUser: any }) {
         return () => listener.subscription.unsubscribe();
     }, [supabase]);
 
-    // Load content data (Public)
+    // Load content data (Public) - Now using normalized data directly
     useEffect(() => {
         async function loadContent() {
             const profile = await getPublicProfile();
-            if (profile) {
-                setCvData({
-                    ...mockCVData,
-                    themeColor: profile.theme_color || mockCVData.themeColor,
-                    personalInfo: {
-                        ...mockCVData.personalInfo,
-                        name: profile.full_name?.split(' ')[0] || mockCVData.personalInfo.name,
-                        lastName: profile.full_name?.split(' ').slice(1).join(' ') || mockCVData.personalInfo.lastName,
-                        role: profile.role || mockCVData.personalInfo.role,
-                        photo: profile.avatar_url ? `${profile.avatar_url}?v=${new Date(profile.updated_at).getTime()}` : '/profile.jpg', // Cache busting
-                        photos: profile.avatar_gallery?.length ? profile.avatar_gallery : ['/profile.jpg', '/profile.jpg', '/profile.jpg'],
-                        contactInfo: profile.contact_info || mockCVData.personalInfo.contactInfo,
-                    },
-                    objective: profile.bio || mockCVData.objective,
-                    skills: profile.skills || mockCVData.skills,
-                    experience: profile.experience || mockCVData.experience,
-                    education: profile.education || mockCVData.education,
-                });
-            } else {
-                setCvData({
-                    ...mockCVData,
-                    personalInfo: {
-                        ...mockCVData.personalInfo,
-                        photo: '/profile.jpg'
-                    }
-                });
-            }
+            setCvData(profile); // Already normalized with all defaults
         }
         loadContent();
     }, [user]);
@@ -88,7 +63,9 @@ export default function UnifiedPage({ initialUser }: { initialUser: any }) {
     };
 
     const handleSave = async () => {
+        if (!cvData) return; // Guard against null
         requireAuth(async () => {
+            if (!cvData) return; // Double guard inside async
             const formData = new FormData();
             formData.append('full_name', `${cvData.personalInfo.name} ${cvData.personalInfo.lastName}`);
             formData.append('role', cvData.personalInfo.role);
@@ -115,11 +92,12 @@ export default function UnifiedPage({ initialUser }: { initialUser: any }) {
     };
 
     const handleColorChange = (color: string) => {
+        if (!cvData) return; // Guard against null
         setCvData({ ...cvData, themeColor: color });
     };
 
-    // Mientras loading: return null solicitado
-    if (loading) return null;
+    // Mientras loading o cvData no está listo: return null
+    if (loading || !cvData) return null;
 
     return (
         <div className="flex h-screen bg-background overflow-hidden relative font-sans">

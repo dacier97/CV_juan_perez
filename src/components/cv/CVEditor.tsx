@@ -4,57 +4,37 @@ import React, { useState, useTransition, useRef } from 'react';
 import Image from 'next/image';
 import {
     User,
-    Phone,
     Briefcase,
     GraduationCap,
     Plus,
     Trash2,
-    ChevronRight,
-    Save,
     Camera,
     Loader2,
     Check
 } from 'lucide-react';
 import { selectAvatar, uploadAvatar } from '@app/actions/profile';
+import { ProfileData, Education, Experience } from '@/lib/types';
 
-const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => void }) => {
-    // 1. SAFE NORMALIZATION
-    // Ensures all arrays and objects exist to prevent crashes (map of undefined)
-    const safeData = {
-        ...data,
-        personalInfo: {
-            name: data?.personalInfo?.name || '',
-            lastName: data?.personalInfo?.lastName || '',
-            role: data?.personalInfo?.role || '',
-            photo: data?.personalInfo?.photo || '',
-            photos: Array.isArray(data?.personalInfo?.photos) ? data.personalInfo.photos : ['', '', ''],
-            contactInfo: {
-                email: data?.personalInfo?.contactInfo?.email || '',
-                phone: data?.personalInfo?.contactInfo?.phone || '',
-                linkedin: data?.personalInfo?.contactInfo?.linkedin || '',
-                github: data?.personalInfo?.contactInfo?.github || '',
-            }
-        },
-        objective: data?.objective || '',
-        skills: {
-            professional: Array.isArray(data?.skills?.professional) ? data.skills.professional : []
-        },
-        experience: Array.isArray(data?.experience) ? data.experience.map((exp: any) => ({
-            ...exp,
-            bullets: Array.isArray(exp?.bullets) ? exp.bullets : []
-        })) : [],
-        education: Array.isArray(data?.education) ? data.education : []
-    };
+interface CVEditorProps {
+    data: ProfileData;
+    onChange: (newData: ProfileData) => void;
+}
+
+const CVEditor = ({ data, onChange }: CVEditorProps) => {
+    // Basic validation to prevent crashes if parent passes null initially
+    if (!data || !data.personalInfo) {
+        return <div className="p-8 text-center text-gray-400">Cargando editor...</div>;
+    }
 
     const [activeTab, setActiveTab] = useState('personal');
     const [isUploading, startUploadTransition] = useTransition();
     const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
     const fileInputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
-    const updatePersonal = (field: string, value: string) => {
+    const updatePersonal = (field: keyof ProfileData['personalInfo'], value: string) => {
         onChange({
-            ...safeData,
-            personalInfo: { ...safeData.personalInfo, [field]: value }
+            ...data,
+            personalInfo: { ...data.personalInfo, [field]: value }
         });
     };
 
@@ -64,11 +44,11 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                 const result = await selectAvatar(photoUrl);
                 if (result.success) {
                     onChange({
-                        ...safeData,
-                        personalInfo: { ...safeData.personalInfo, photo: photoUrl }
+                        ...data,
+                        personalInfo: { ...data.personalInfo, photo: photoUrl }
                     });
                 } else {
-                    alert('Error al seleccionar: ' + result.error);
+                    alert('Error al seleccionar: ' + (result.error || 'Unknown error'));
                 }
             });
         } else {
@@ -93,94 +73,94 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
 
             const result = await uploadAvatar(formData);
             if (result.success && result.url) {
-                const newPhotos = [...safeData.personalInfo.photos];
+                const newPhotos = [...(data.personalInfo.photos || ['', '', ''])];
                 newPhotos[idx] = result.url;
                 onChange({
-                    ...safeData,
+                    ...data,
                     personalInfo: {
-                        ...safeData.personalInfo,
+                        ...data.personalInfo,
                         photos: newPhotos,
                         photo: result.url
                     }
                 });
             } else {
-                alert('Error al subir: ' + result.error);
+                alert('Error al subir: ' + (result.error || 'Unknown error'));
             }
             setUploadingSlot(null);
         });
     };
 
-    const updateContact = (field: string, value: string) => {
+    const updateContact = (field: 'email' | 'phone', value: string) => {
         onChange({
-            ...safeData,
+            ...data,
             personalInfo: {
-                ...safeData.personalInfo,
-                contactInfo: { ...safeData.personalInfo.contactInfo, [field]: value }
+                ...data.personalInfo,
+                contactInfo: { ...data.personalInfo.contactInfo, [field]: value }
             }
         });
     };
 
     const updateSkill = (index: number, value: string) => {
-        const newSkills = [...safeData.skills.professional];
+        const newSkills = [...(data.skills.professional || [])];
         newSkills[index] = value;
-        onChange({ ...safeData, skills: { professional: newSkills } });
+        onChange({ ...data, skills: { professional: newSkills } });
     };
 
     const addSkill = () => {
         onChange({
-            ...safeData,
-            skills: { professional: [...safeData.skills.professional, 'Nueva Habilidad'] }
+            ...data,
+            skills: { professional: [...(data.skills.professional || []), 'Nueva Habilidad'] }
         });
     };
 
     const removeSkill = (index: number) => {
-        const newSkills = safeData.skills.professional.filter((_: any, i: number) => i !== index);
-        onChange({ ...safeData, skills: { professional: newSkills } });
+        const newSkills = (data.skills.professional || []).filter((_: string, i: number) => i !== index);
+        onChange({ ...data, skills: { professional: newSkills } });
     };
 
-    const updateExperience = (id: number, field: string, value: any) => {
-        const newExp = safeData.experience.map((exp: any) =>
+    const updateExperience = (id: number, field: keyof Experience, value: string | string[]) => {
+        const newExp = (data.experience || []).map((exp) =>
             exp.id === id ? { ...exp, [field]: value } : exp
         );
-        onChange({ ...safeData, experience: newExp });
+        onChange({ ...data, experience: newExp });
     };
 
     const addExperience = () => {
-        const newId = Math.max(...safeData.experience.map((e: any) => e.id), 0) + 1;
-        const newExp = {
+        const newId = Math.max(0, ...(data.experience || []).map((e) => e.id)) + 1;
+        const newExp: Experience = {
             id: newId,
             period: "20XX — 20XX",
             title: "PUESTO — EMPRESA",
             description: "Descripción del puesto...",
             bullets: ["Logro 1", "Logro 2"]
         };
-        onChange({ ...safeData, experience: [...safeData.experience, newExp] });
+        onChange({ ...data, experience: [...(data.experience || []), newExp] });
     };
 
     const removeExperience = (id: number) => {
-        onChange({ ...safeData, experience: safeData.experience.filter((e: any) => e.id !== id) });
+        onChange({ ...data, experience: (data.experience || []).filter((e) => e.id !== id) });
     };
 
-    const updateEducation = (id: number, field: string, value: string) => {
-        const newEdu = safeData.education.map((edu: any) =>
+    const updateEducation = (id: number, field: keyof Education, value: string) => {
+        const newEdu = (data.education || []).map((edu) =>
             edu.id === id ? { ...edu, [field]: value } : edu
         );
-        onChange({ ...safeData, education: newEdu });
+        onChange({ ...data, education: newEdu });
     };
 
     const addEducation = () => {
-        const newId = Math.max(...safeData.education.map((e: any) => e.id), 0) + 1;
-        const newEdu = {
+        const newId = Math.max(0, ...(data.education || []).map((e) => e.id)) + 1;
+        const newEdu: Education = {
             id: newId,
             period: "20XX — 20XX",
             degree: "TÍTULO",
             institution: "INSTITUCIÓN"
         };
-        onChange({ ...safeData, education: [...safeData.education, newEdu] });
+        onChange({ ...data, education: [...(data.education || []), newEdu] });
     };
 
     const removeEducation = (id: number) => {
-        onChange({ ...safeData, education: safeData.education.filter((e: any) => e.id !== id) });
+        onChange({ ...data, education: (data.education || []).filter((e) => e.id !== id) });
     };
 
     return (
@@ -240,8 +220,8 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                 {[0, 1, 2].map((idx) => {
-                                    const photoUrl = safeData.personalInfo.photos[idx] || '';
-                                    const isActive = safeData.personalInfo.photo === photoUrl && photoUrl !== '';
+                                    const photoUrl = data.personalInfo.photos?.[idx] || '';
+                                    const isActive = data.personalInfo.photo === photoUrl && photoUrl !== '';
                                     const isLoading = uploadingSlot === idx;
 
                                     return (
@@ -312,7 +292,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             <div>
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Nombre</label>
                                 <input
-                                    value={safeData.personalInfo.name}
+                                    value={data.personalInfo.name}
                                     onChange={(e) => updatePersonal('name', e.target.value)}
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
                                 />
@@ -320,7 +300,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             <div>
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Apellido</label>
                                 <input
-                                    value={safeData.personalInfo.lastName}
+                                    value={data.personalInfo.lastName}
                                     onChange={(e) => updatePersonal('lastName', e.target.value)}
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
                                 />
@@ -328,7 +308,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             <div className="md:col-span-2">
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Rol / Cargo</label>
                                 <input
-                                    value={safeData.personalInfo.role}
+                                    value={data.personalInfo.role}
                                     onChange={(e) => updatePersonal('role', e.target.value)}
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
                                 />
@@ -341,7 +321,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                                 <div className="flex gap-4 items-center">
                                     <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">Email</div>
                                     <input
-                                        value={safeData.personalInfo.contactInfo.email}
+                                        value={data.personalInfo.contactInfo.email}
                                         onChange={(e) => updateContact('email', e.target.value)}
                                         className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
                                     />
@@ -349,28 +329,15 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                                 <div className="flex gap-4 items-center">
                                     <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">Teléfono</div>
                                     <input
-                                        value={safeData.personalInfo.contactInfo.phone}
+                                        value={data.personalInfo.contactInfo.phone}
                                         onChange={(e) => updateContact('phone', e.target.value)}
                                         className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
                                     />
                                 </div>
-                                <div className="flex gap-4 items-center">
-                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">LinkedIn</div>
-                                    <input
-                                        value={safeData.personalInfo.contactInfo.linkedin}
-                                        onChange={(e) => updateContact('linkedin', e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
-                                        placeholder="Opcional"
-                                    />
-                                </div>
-                                <div className="flex gap-4 items-center">
-                                    <div className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-tighter shrink-0">GitHub</div>
-                                    <input
-                                        value={safeData.personalInfo.contactInfo.github}
-                                        onChange={(e) => updateContact('github', e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground"
-                                        placeholder="Opcional"
-                                    />
+                                {/* Removed LinkedIn and GitHub inputs per requirements */}
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium border border-blue-100 flex items-center gap-3">
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                                    Nota: Las redes sociales se gestionan automáticamente desde el panel principal.
                                 </div>
                             </div>
                         </div>
@@ -378,8 +345,8 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                         <div className="space-y-4">
                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Objetivo Profesional</h4>
                             <textarea
-                                value={safeData.objective}
-                                onChange={(e) => onChange({ ...safeData, objective: e.target.value })}
+                                value={data.objective}
+                                onChange={(e) => onChange({ ...data, objective: e.target.value })}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground min-h-[120px] resize-none"
                             />
                         </div>
@@ -395,7 +362,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {safeData.skills.professional.map((skill: string, index: number) => (
+                            {(data.skills.professional || []).map((skill: string, index: number) => (
                                 <div key={index} className="group flex items-center gap-2 bg-gray-50 p-1 pl-4 rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-foreground/5 focus-within:border-foreground transition-all">
                                     <input
                                         value={skill}
@@ -425,7 +392,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             </button>
                         </div>
                         <div className="space-y-12">
-                            {safeData.experience.map((exp: any) => (
+                            {(data.experience || []).map((exp) => (
                                 <div key={exp.id} className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 relative group">
                                     <button
                                         onClick={() => removeExperience(exp.id)}
@@ -463,7 +430,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                                         <div>
                                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Logros (uno por línea)</label>
                                             <textarea
-                                                value={exp.bullets.join('\n')}
+                                                value={(exp.bullets || []).join('\n')}
                                                 onChange={(e) => updateExperience(exp.id, 'bullets', e.target.value.split('\n'))}
                                                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-foreground/5 focus:border-foreground min-h-[100px] resize-none"
                                             />
@@ -484,7 +451,7 @@ const CVEditor = ({ data, onChange }: { data: any, onChange: (newData: any) => v
                             </button>
                         </div>
                         <div className="space-y-8">
-                            {safeData.education.map((edu: any) => (
+                            {(data.education || []).map((edu) => (
                                 <div key={edu.id} className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 relative group">
                                     <button
                                         onClick={() => removeEducation(edu.id)}

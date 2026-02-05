@@ -5,7 +5,7 @@ import {
     Settings,
     Download,
     PlusCircle,
-    User,
+    User as UserIcon,
     LogOut,
     Palette,
     Check,
@@ -16,6 +16,7 @@ import {
     Facebook
 } from 'lucide-react';
 import { useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 
 const Sidebar = ({
     user,
@@ -29,7 +30,7 @@ const Sidebar = ({
     userName,
     onDocumentsClick
 }: {
-    user: any,
+    user: User | null,
     isOpen: boolean,
     onClose: () => void,
     onLogout: () => void,

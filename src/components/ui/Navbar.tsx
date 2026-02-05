@@ -1,5 +1,6 @@
 import { Share2, Download, Eye, Save, Menu, Edit3, ChevronDown, CheckCircle, Linkedin, Instagram, Facebook } from 'lucide-react';
 import { useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 
 const Navbar = ({
     user,
@@ -10,7 +11,7 @@ const Navbar = ({
     onDownloadPremium,
     onDownloadAts
 }: {
-    user: any,
+    user: User | null,
     onMenuClick: () => void,
     onSave: () => void,
     viewMode: 'edit' | 'preview',

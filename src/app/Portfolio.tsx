@@ -1,43 +1,19 @@
 import { getPublicProfile } from '@/app/actions/profile';
 import CVTemplate from "@/components/cv/CVTemplate";
-import { mockCVData } from "@/lib/mockData";
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { User } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: "Daniel Ortiz | Portfolio Profesional",
   description: "Explora mi trayectoria profesional, proyectos y habilidades en Ingeniería Electrónica y Desarrollo Full Stack.",
 };
 
-import { createClient } from '@/lib/supabase/server';
-
 export default async function PortfolioPage() {
-  const profile = await getPublicProfile();
+  const profile = await getPublicProfile(); // Already normalized with defaults
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  let cvData = mockCVData;
-
-  if (profile) {
-    cvData = {
-      ...mockCVData,
-      themeColor: profile.theme_color || mockCVData.themeColor,
-      personalInfo: {
-        ...mockCVData.personalInfo,
-        name: profile.full_name?.split(' ')[0] || mockCVData.personalInfo.name,
-        lastName: profile.full_name?.split(' ').slice(1).join(' ') || mockCVData.personalInfo.lastName,
-        role: profile.role || mockCVData.personalInfo.role,
-        photo: profile.avatar_url || '',
-        photos: profile.avatar_gallery?.length ? profile.avatar_gallery : ['', '', ''],
-        contactInfo: profile.contact_info || mockCVData.personalInfo.contactInfo,
-      },
-      objective: profile.bio || mockCVData.objective,
-      skills: profile.skills || mockCVData.skills,
-      experience: profile.experience || mockCVData.experience,
-      education: profile.education || mockCVData.education,
-    };
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
@@ -53,7 +29,7 @@ export default async function PortfolioPage() {
       </div>
 
       <main className="w-full">
-        <CVTemplate data={cvData} isAtsFriendly={false} />
+        <CVTemplate data={profile} isAtsFriendly={false} />
       </main>
 
       <footer className="py-12 text-center text-gray-400 text-sm">
