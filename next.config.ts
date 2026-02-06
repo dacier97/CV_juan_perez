@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '5mb',
     },
+    // @ts-ignore
+    instrumentationHook: false,
   },
+  devIndicators: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

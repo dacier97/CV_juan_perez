@@ -55,20 +55,19 @@ export default function RootLayout({
     <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <body className="antialiased">
         {children}
-        {/* Anti-Vercel Toolbar script */}
+        {/* Extra Kill Switch for Vercel Toolbar */}
         <script dangerouslySetInnerHTML={{
           __html: `
             (function() {
-              const observer = new MutationObserver((mutations) => {
-                const toolbar = document.querySelector('#__vercel_toolbar') || 
-                                document.querySelector('[data-vercel-toolbar]') ||
-                                document.querySelector('iframe[src*="vercel"]');
-                if (toolbar) {
-                  toolbar.style.display = 'none';
-                  toolbar.style.visibility = 'hidden';
+              const style = document.createElement('style');
+              style.innerHTML = \`
+                [data-vercel-toolbar],
+                #__vercel_toolbar,
+                iframe[src*="vercel"] {
+                  display: none !important;
                 }
-              });
-              observer.observe(document.body, { childList: true, subtree: true });
+              \`;
+              document.head.appendChild(style);
             })();
           `
         }} />
