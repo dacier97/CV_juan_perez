@@ -3,10 +3,20 @@
 import { createClient } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import CVTemplate from "@/components/cv/CVTemplate";
+import dynamic from 'next/dynamic';
+
+const CVTemplate = dynamic(() => import("@/components/cv/CVTemplate"), {
+    ssr: false,
+    loading: () => <div className="h-[800px] w-full bg-gray-50 animate-pulse rounded-3xl border border-gray-100 flex items-center justify-center text-gray-400">Cargando plantilla...</div>
+});
+
+const CVEditor = dynamic(() => import("@/components/cv/CVEditor"), {
+    ssr: false,
+    loading: () => <div className="h-[600px] w-full bg-gray-50 animate-pulse rounded-3xl border border-gray-100 flex items-center justify-center text-gray-400">Cargando editor...</div>
+});
+
 import Sidebar from "@/components/ui/Sidebar";
 import Navbar from "@/components/ui/Navbar";
-import CVEditor from "@/components/cv/CVEditor";
 import { signOut } from '@app/actions/auth';
 import { getPublicProfile, updateProfile } from '@app/actions/profile';
 import DocumentManager from '@/components/ui/DocumentManager';

@@ -243,6 +243,7 @@ const CVEditor = ({ data, onChange }: CVEditorProps) => {
                                                             src={photoUrl}
                                                             alt={`Profile ${idx + 1}`}
                                                             fill
+                                                            sizes="(max-width: 768px) 100vw, 400px"
                                                             className="object-cover transition-transform group-hover:scale-110"
                                                         />
                                                         {isActive && (
