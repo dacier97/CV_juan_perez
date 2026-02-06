@@ -4,7 +4,6 @@ import React, { useState, useTransition, useEffect } from 'react';
 import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { signIn } from '@app/actions/auth';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 const LoginForm = () => {
@@ -16,10 +15,10 @@ const LoginForm = () => {
     useEffect(() => {
         const checkSession = async () => {
             const { data } = await supabase.auth.getSession();
-            if (data.session) router.replace('/');
+            if (data.session) router.replace('/dashboard');
         };
         checkSession();
-    }, []);
+    }, [router, supabase.auth]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -42,8 +41,8 @@ const LoginForm = () => {
                     <div className="w-16 h-16 bg-foreground rounded-2xl flex items-center justify-center text-white shadow-lg shadow-gray-200 mx-auto mb-6">
                         <Lock size={32} />
                     </div>
-                    <h2 className="text-3xl font-bold text-foreground font-display">Bienvenido</h2>
-                    <p className="text-gray-500 mt-2">Ingresa tus credenciales para editar tu CV</p>
+                    <h2 className="text-3xl font-bold text-foreground font-display">Plataforma Privada</h2>
+                    <p className="text-gray-500 mt-2">Ingresa tus credenciales de acceso</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -100,17 +99,8 @@ const LoginForm = () => {
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm text-gray-500">
-                    <p>
-                        ¿No tienes cuenta?{' '}
-                        <Link href="/register" className="text-primary font-bold hover:underline">
-                            Regístrate
-                        </Link>
-                    </p>
-                </div>
-
-                <div className="mt-4 text-center text-xs text-gray-400">
-                    <p className="font-medium">Solo acceso autorizado para Daniel Ortiz</p>
+                <div className="mt-8 text-center text-xs text-gray-400">
+                    <p className="font-medium">Acceso restringido para usuarios autorizados.</p>
                 </div>
             </div>
         </div>

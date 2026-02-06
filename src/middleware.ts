@@ -56,7 +56,9 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Protected routes
+    // Protected routes (Dashboard, Editor and any internal management)
+    // We treat '/' as potentially public if it's the portfolio, 
+    // but the user's flow starts with LOGIN -> DASHBOARD.
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
         request.nextUrl.pathname.startsWith('/editor')
 
@@ -64,9 +66,9 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Redirect authenticated users away from login/register
-    if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
-        return NextResponse.redirect(new URL('/', request.url))
+    // Redirect authenticated users away from login
+    if (user && request.nextUrl.pathname === '/login') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return response
