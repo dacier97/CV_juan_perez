@@ -58,50 +58,47 @@ body {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
   body {
-    margin: 0 !important;
-    padding: 0 !important;
     background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  body * {
-    visibility: hidden !important;
-  }
-
-  .cv-print-area,
-  .cv-print-area * {
-    visibility: visible !important;
-  }
-
-  .cv-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
+  /* Ocultar todo excepto el área de impresión */
+  body>*:not(main),
+  nav,
+  aside,
   .no-print {
     display: none !important;
   }
 
-  .flex,
-  .h-screen,
-  .min-h-screen,
-  .overflow-hidden,
-  .overflow-y-auto {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
+  .cv-print-area {
+    visibility: visible !important;
     display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
-  @page {
-    size: A4;
-    margin: 12mm;
+  /* Asegurar que las imágenes sean visibles */
+  img {
+    visibility: visible !important;
+    display: block !important;
+    max-width: 100%;
+  }
+
+  .cv-print-area * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 
