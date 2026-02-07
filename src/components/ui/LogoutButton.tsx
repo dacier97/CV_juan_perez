@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { signOut } from '@app/actions/auth';
-import { useTransition } from 'react';
 
 interface LogoutButtonProps {
     className?: string;
