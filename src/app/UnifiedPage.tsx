@@ -107,41 +107,50 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setCVData({ ...cvData, themeColor: color });
     };
 
+    const [isDownloading, setIsDownloading] = useState(false);
+
     const handleDownload = async (isAts: boolean) => {
-        const html2pdf = (await import('html2pdf.js')).default;
-        if (!html2pdf) return;
-
-        const fileName = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV${isAts ? '-ATS' : ''}.pdf`;
-
-        setIsAtsFriendly(isAts);
-        setViewMode('preview');
-
-        // Delay para que el render se estabilice
-        await new Promise(r => setTimeout(r, 1000));
-
-        const element = document.querySelector('.cv-print-area');
-        if (!element) return;
-
-        const opt = {
-            margin: 0,
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: 850
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
+        setIsDownloading(true);
         try {
+            const html2pdfModule = await import('html2pdf.js');
+            const html2pdf = html2pdfModule.default || html2pdfModule;
+
+            if (!html2pdf || typeof html2pdf !== 'function') {
+                throw new Error('html2pdf library not loaded correctly');
+            }
+
+            const fileName = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV${isAts ? '-ATS' : ''}.pdf`;
+
+            setIsAtsFriendly(isAts);
+            setViewMode('preview');
+
+            // Delay para que el render se estabilice
+            await new Promise(r => setTimeout(r, 1200));
+
+            const element = document.querySelector('.cv-print-area');
+            if (!element) throw new Error('CV area not found');
+
+            const opt = {
+                margin: 0,
+                filename: fileName,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: 850
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
             await (html2pdf() as any).set(opt).from(element as HTMLElement).save();
         } catch (err) {
             console.error('Error generating PDF:', err);
-            window.print();
+            alert('Hubo un problema al generar el PDF. Por favor, intenta de nuevo o usa la opción Imprimir.');
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -176,6 +185,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                     }}
                     onDownloadPremium={() => handleDownload(false)}
                     onDownloadAts={() => handleDownload(true)}
+                    isDownloading={isDownloading}
                 />
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 custom-scrollbar bg-gray-50/50">

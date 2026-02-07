@@ -13,7 +13,8 @@ const Navbar = ({
     viewMode,
     onToggleView,
     onDownloadPremium,
-    onDownloadAts
+    onDownloadAts,
+    isDownloading
 }: {
     user: User | null,
     onMenuClick: () => void,
@@ -21,7 +22,8 @@ const Navbar = ({
     viewMode: 'edit' | 'preview',
     onToggleView: () => void,
     onDownloadPremium: () => void,
-    onDownloadAts: () => void
+    onDownloadAts: () => void,
+    isDownloading?: boolean
 }) => {
     // Store global
     const { cvData, setCVData, isSaving, lastSaved } = useCVStore();
@@ -176,11 +178,21 @@ const Navbar = ({
                 <div className="relative">
                     <button
                         onClick={() => setIsDownloadOpen(!isDownloadOpen)}
-                        className="flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-2.5 bg-foreground text-white text-xs lg:text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
+                        disabled={isDownloading}
+                        className="flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-2.5 bg-foreground text-white text-xs lg:text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 disabled:opacity-70"
                     >
-                        <Download size={18} className="lg:w-[18px] lg:h-[18px] w-4 h-4" />
-                        <span className="inline">Descargar <span className="hidden sm:inline">PDF</span></span>
-                        <ChevronDown size={14} className={`ml-1 transition-transform ${isDownloadOpen ? 'rotate-180' : ''}`} />
+                        {isDownloading ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                <span>Generando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Download size={18} className="lg:w-[18px] lg:h-[18px] w-4 h-4" />
+                                <span className="inline">Descargar <span className="hidden sm:inline">PDF</span></span>
+                                <ChevronDown size={14} className={`ml-1 transition-transform ${isDownloadOpen ? 'rotate-180' : ''}`} />
+                            </>
+                        )}
                     </button>
 
                     {isDownloadOpen && (
