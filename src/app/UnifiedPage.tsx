@@ -15,6 +15,8 @@ const CVEditor = dynamic(() => import("@/components/cv/CVEditor"), {
     loading: () => <div className="h-[600px] w-full bg-gray-50 animate-pulse rounded-3xl border border-gray-100 flex items-center justify-center text-gray-400">Cargando editor...</div>
 });
 
+// El import se hará dentro de la función para evitar problemas de SSR con Next.js
+
 import Sidebar from "@/components/ui/Sidebar";
 import Navbar from "@/components/ui/Navbar";
 import { getPublicProfile, updateProfile } from '@app/actions/profile';
@@ -29,7 +31,6 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     const router = useRouter();
     const [supabase] = useState(() => createClient());
 
-    // Pattern EXACTO solicitado
     const [user, setUser] = useState(initialUser);
     const [loading, setLoading] = useState(true);
 
@@ -45,7 +46,6 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     // Activar Autosave
     useAutoSave();
 
-    // useEffect solicitado exactamente
     useEffect(() => {
         const loadSession = async () => {
             const { data } = await supabase.auth.getSession();
@@ -66,9 +66,6 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     useEffect(() => {
         async function loadContent() {
             const profile = await getPublicProfile();
-            // Solo sobreescribimos si no hay datos en la store o si es la carga inicial
-            // En una app tipo Google Docs, usualmente el servidor manda sobre el localStorage
-            // a menos que estemos offline. Por simplicidad y robustez:
             setCVData(profile);
             setLoading(false);
         }
@@ -77,25 +74,25 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
 
     const requireAuth = (action: () => void) => {
         if (!user) {
-            router.push('/login?redirect=/');
-            return;
+            router.push('/login');
+        } else {
+            action();
         }
-        action();
     };
 
-    // handleSave se mantiene como backup manual pero ahora es automático
     const handleSave = async () => {
         if (!cvData) return;
+
         requireAuth(async () => {
-            if (!cvData) return;
             const formData = new FormData();
-            formData.append('full_name', `${cvData.personalInfo.name} ${cvData.personalInfo.lastName}`);
-            formData.append('role', cvData.personalInfo.role);
-            formData.append('bio', cvData.objective);
-            formData.append('skills', JSON.stringify(cvData.skills));
-            formData.append('experience', JSON.stringify(cvData.experience));
-            formData.append('education', JSON.stringify(cvData.education));
-            formData.append('contact_info', JSON.stringify(cvData.personalInfo.contactInfo));
+            formData.append('name', cvData.personalInfo?.name || '');
+            formData.append('last_name', cvData.personalInfo?.lastName || '');
+            formData.append('role', cvData.personalInfo?.role || '');
+            formData.append('objective', cvData.objective || '');
+            formData.append('contact_info', JSON.stringify(cvData.personalInfo?.contactInfo || {}));
+            formData.append('skills', JSON.stringify(cvData.skills || {}));
+            formData.append('experience', JSON.stringify(cvData.experience || []));
+            formData.append('education', JSON.stringify(cvData.education || []));
             formData.append('theme_color', cvData.themeColor);
 
             const result = await updateProfile(formData);
@@ -110,7 +107,44 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setCVData({ ...cvData, themeColor: color });
     };
 
-    // Mientras loading o cvData no está listo: return null
+    const handleDownload = async (isAts: boolean) => {
+        const html2pdf = (await import('html2pdf.js')).default;
+        if (!html2pdf) return;
+
+        const fileName = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV${isAts ? '-ATS' : ''}.pdf`;
+
+        setIsAtsFriendly(isAts);
+        setViewMode('preview');
+
+        // Delay para que el render se estabilice
+        await new Promise(r => setTimeout(r, 1000));
+
+        const element = document.querySelector('.cv-print-area');
+        if (!element) return;
+
+        const opt = {
+            margin: 0,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: 850
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        try {
+            await (html2pdf() as any).set(opt).from(element as HTMLElement).save();
+        } catch (err) {
+            console.error('Error generating PDF:', err);
+            window.print();
+        }
+    };
+
     if (loading || !cvData) return null;
 
     return (
@@ -140,22 +174,8 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                             setViewMode('preview');
                         }
                     }}
-                    onDownloadPremium={async () => {
-                        document.title = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV`;
-                        setIsAtsFriendly(false);
-                        setViewMode('preview');
-                        await document.fonts.ready;
-                        await new Promise(r => setTimeout(r, 1000));
-                        window.print();
-                    }}
-                    onDownloadAts={async () => {
-                        document.title = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV-ATS`;
-                        setIsAtsFriendly(true);
-                        setViewMode('preview');
-                        await document.fonts.ready;
-                        await new Promise(r => setTimeout(r, 1000));
-                        window.print();
-                    }}
+                    onDownloadPremium={() => handleDownload(false)}
+                    onDownloadAts={() => handleDownload(true)}
                 />
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 custom-scrollbar bg-gray-50/50">
@@ -175,20 +195,17 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
 
             <DocumentManager isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
 
-            {/* Botón flotante Login si no hay sesión */}
-            {
-                !user && (
-                    <button
-                        onClick={() => router.push('/login')}
-                        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] group no-print"
-                    >
-                        <LogIn size={24} />
-                        <span className="absolute right-16 bg-foreground text-white px-3 py-1.5 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
-                            Acceso Administrador
-                        </span>
-                    </button>
-                )
-            }
-        </div >
+            {!user && (
+                <button
+                    onClick={() => router.push('/login')}
+                    className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] group no-print"
+                >
+                    <LogIn size={24} />
+                    <span className="absolute right-16 bg-foreground text-white px-3 py-1.5 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
+                        Acceso Administrador
+                    </span>
+                </button>
+            )}
+        </div>
     );
 }
