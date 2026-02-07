@@ -17,7 +17,7 @@ export default function LogoutButton({ className, variant = 'navbar' }: LogoutBu
     const handleLogout = async () => {
         startTransition(async () => {
             await signOut();
-            router.push('/');
+            router.replace('/');
             router.refresh();
         });
     };

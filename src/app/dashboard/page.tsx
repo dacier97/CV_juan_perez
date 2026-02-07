@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Layout, FileText, Settings, Edit3 } from 'lucide-react';
 import LogoutButton from '@/components/ui/LogoutButton';
@@ -27,10 +29,6 @@ export default async function DashboardPage() {
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 bg-primary/5 text-primary rounded-xl font-bold">
                         <Layout size={20} />
                         Panel
-                    </Link>
-                    <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium transition-all">
-                        <FileText size={20} />
-                        Mi CV
                     </Link>
                 </nav>
 

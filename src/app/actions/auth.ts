@@ -26,5 +26,5 @@ export async function signIn(formData: FormData) {
 export async function signOut() {
     const supabase = await createClient()
     await supabase.auth.signOut()
-    revalidatePath('/', 'layout')
+    return { success: true }
 }
