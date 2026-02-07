@@ -11,26 +11,29 @@ interface LogoutButtonProps {
 }
 
 export default function LogoutButton({ className, variant = 'navbar' }: LogoutButtonProps) {
-    const router = useRouter();
-    const [isPending, startTransition] = useTransition();
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleLogout = async () => {
-        startTransition(async () => {
+        setIsLoading(true);
+        try {
             await signOut();
-            router.replace('/');
-            router.refresh();
-        });
+            // window.location.href es la forma más segura de limpiar el cache de Next.js en un logout
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Logout error:', error);
+            window.location.href = '/';
+        }
     };
 
     if (variant === 'sidebar') {
         return (
             <button
                 onClick={handleLogout}
-                disabled={isPending}
+                disabled={isLoading}
                 className={className || "w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl font-bold transition-all mt-auto disabled:opacity-50"}
             >
-                <LogOut size={20} className={isPending ? "animate-pulse" : ""} />
-                {isPending ? "Cerrando..." : "Cerrar Sesión"}
+                <LogOut size={20} className={isLoading ? "animate-pulse" : ""} />
+                {isLoading ? "Cerrando..." : "Cerrar Sesión"}
             </button>
         );
     }
@@ -38,12 +41,12 @@ export default function LogoutButton({ className, variant = 'navbar' }: LogoutBu
     return (
         <button
             onClick={handleLogout}
-            disabled={isPending}
+            disabled={isLoading}
             className={className || "flex items-center gap-2 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"}
         >
-            <LogOut size={16} className={isPending ? "animate-pulse" : ""} />
+            <LogOut size={16} className={isLoading ? "animate-pulse" : ""} />
             <span className="text-xs font-bold uppercase tracking-wider">
-                {isPending ? "..." : "Salir"}
+                {isLoading ? "..." : "Salir"}
             </span>
         </button>
     );
