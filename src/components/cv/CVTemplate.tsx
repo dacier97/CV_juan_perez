@@ -102,8 +102,10 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                                 src={personalInfo.photo}
                                 alt={`${personalInfo.name} ${personalInfo.lastName}`}
                                 fill
+                                priority
+                                unoptimized
                                 sizes="(max-width: 768px) 100vw, 400px"
-                                className="object-cover print:block transition-transform duration-700 group-hover:scale-105"
+                                className="object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                         ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">

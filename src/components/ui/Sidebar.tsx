@@ -74,7 +74,7 @@ const Sidebar = ({
                         </div>
 
                         <div className="space-y-1 text-center">
-                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] leading-none">Portafolio Pro</p>
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] leading-none">CURRICULUM VITAE</p>
                             <h2 className="text-2xl font-bold tracking-tight text-foreground font-display leading-tight uppercase">
                                 {userName.split(' ')[0]}<br />
                                 <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">{userName.split(' ').slice(1).join(' ')}</span>

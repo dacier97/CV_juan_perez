@@ -145,7 +145,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                         setIsAtsFriendly(false);
                         setViewMode('preview');
                         await document.fonts.ready;
-                        await new Promise(r => setTimeout(r, 300));
+                        await new Promise(r => setTimeout(r, 1000));
                         window.print();
                     }}
                     onDownloadAts={async () => {
@@ -153,7 +153,7 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                         setIsAtsFriendly(true);
                         setViewMode('preview');
                         await document.fonts.ready;
-                        await new Promise(r => setTimeout(r, 300));
+                        await new Promise(r => setTimeout(r, 1000));
                         window.print();
                     }}
                 />
