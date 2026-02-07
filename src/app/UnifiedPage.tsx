@@ -17,7 +17,6 @@ const CVEditor = dynamic(() => import("@/components/cv/CVEditor"), {
 
 import Sidebar from "@/components/ui/Sidebar";
 import Navbar from "@/components/ui/Navbar";
-import { signOut } from '@app/actions/auth';
 import { getPublicProfile, updateProfile } from '@app/actions/profile';
 import DocumentManager from '@/components/ui/DocumentManager';
 import { LogIn } from 'lucide-react';
@@ -106,11 +105,6 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         });
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        window.location.reload();
-    };
-
     const handleColorChange = (color: string) => {
         if (!cvData) return;
         setCVData({ ...cvData, themeColor: color });
@@ -125,7 +119,6 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                 user={user}
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
-                onLogout={handleLogout}
                 currentColor={cvData?.themeColor || "#FF5E1A"}
                 onColorChange={handleColorChange}
                 isAtsFriendly={isAtsFriendly}
@@ -183,17 +176,19 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
             <DocumentManager isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
 
             {/* Botón flotante Login si no hay sesión */}
-            {!user && (
-                <button
-                    onClick={() => router.push('/login')}
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] group no-print"
-                >
-                    <LogIn size={24} />
-                    <span className="absolute right-16 bg-foreground text-white px-3 py-1.5 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
-                        Acceso Administrador
-                    </span>
-                </button>
-            )}
-        </div>
+            {
+                !user && (
+                    <button
+                        onClick={() => router.push('/login')}
+                        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] group no-print"
+                    >
+                        <LogIn size={24} />
+                        <span className="absolute right-16 bg-foreground text-white px-3 py-1.5 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
+                            Acceso Administrador
+                        </span>
+                    </button>
+                )
+            }
+        </div >
     );
 }

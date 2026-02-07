@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Layout, FileText, Settings, LogOut, Edit3 } from 'lucide-react';
-import { signOut } from '@app/actions/auth';
+import { Layout, FileText, Settings, Edit3 } from 'lucide-react';
+import LogoutButton from '@/components/ui/LogoutButton';
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -34,12 +34,7 @@ export default async function DashboardPage() {
                     </Link>
                 </nav>
 
-                <form action={signOut}>
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl font-bold transition-all mt-auto">
-                        <LogOut size={20} />
-                        Cerrar Sesión
-                    </button>
-                </form>
+                <LogoutButton variant="sidebar" />
             </aside>
 
             {/* Main Content */}

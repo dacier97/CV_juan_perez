@@ -17,12 +17,12 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import LogoutButton from './LogoutButton';
 
 const Sidebar = ({
     user,
     isOpen,
     onClose,
-    onLogout,
     currentColor,
     onColorChange,
     isAtsFriendly,
@@ -33,7 +33,6 @@ const Sidebar = ({
     user: User | null,
     isOpen: boolean,
     onClose: () => void,
-    onLogout: () => void,
     currentColor: string,
     onColorChange: (color: string) => void,
     isAtsFriendly: boolean,
@@ -170,13 +169,7 @@ const Sidebar = ({
                             </div>
                         </div>
 
-                        <button
-                            onClick={onLogout}
-                            className="w-full flex items-center gap-4 px-4 py-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200"
-                        >
-                            <LogOut size={20} />
-                            <span className="text-sm font-bold tracking-tight">Cerrar Sesión</span>
-                        </button>
+                        <LogoutButton variant="sidebar" />
                     </div>
                 )}
             </aside>
