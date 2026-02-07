@@ -88,12 +88,15 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
 
     // Original Premium Mode
     return (
-        <div className="cv-print-area w-full max-w-[850px] mx-auto bg-white shadow-2xl my-4 md:my-16 p-6 md:p-16 min-h-[1100px] flex flex-col text-foreground selection:bg-primary/30 rounded-none md:rounded-lg font-sans">
+        <div className="cv-print-area w-full max-w-[850px] mx-auto bg-white border border-gray-100 my-4 md:my-16 p-6 md:p-16 min-h-[1100px] flex flex-col text-foreground rounded-none md:rounded-lg font-sans">
             {/* Header Section */}
             <header className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 md:mb-12 gap-10 md:gap-0">
                 <div className="relative group shrink-0">
-                    {/* Decorative Shape */}
-                    <div className="absolute -top-4 -left-4 md:-top-6 md:-left-6 w-44 h-56 md:w-56 md:h-64 bg-accent-yellow/80 rounded-[1.5rem] md:rounded-[2rem] -z-10 rotate-[-5deg] transition-transform duration-500 group-hover:rotate-0"></div>
+                    {/* Decorative Shape - Usando estilo en línea para evitar OKLCH */}
+                    <div
+                        className="absolute -top-4 -left-4 md:-top-6 md:-left-6 w-44 h-56 md:w-56 md:h-64 rounded-[1.5rem] md:rounded-[2rem] -z-10 rotate-[-5deg] transition-transform duration-500 group-hover:rotate-0"
+                        style={{ backgroundColor: '#fde047', opacity: 0.8 }}
+                    ></div>
 
                     {/* Image Container with explicit aspect ratio to prevent deformation */}
                     <div className="relative w-44 h-56 md:w-56 md:h-64 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 shadow-sm z-0">
@@ -191,7 +194,6 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                         </p>
                     </section>
 
-                    {/* Experience Section */}
                     <section className="mb-16">
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-8 md:mb-12 text-foreground font-display">Experiencia Laboral</h3>
                         <div className="space-y-10 md:space-y-16">
@@ -207,7 +209,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                                             <li key={idx} className="flex gap-2 md:gap-3 text-xs md:text-[14px] text-gray-600 leading-relaxed font-sans text-justify">
                                                 <span
                                                     className="mt-1.5 md:mt-2 w-1 md:w-1.5 h-1 md:h-1.5 rounded-full flex-shrink-0"
-                                                    style={{ backgroundColor: secondaryColor + '80' }} // with opacity
+                                                    style={{ backgroundColor: secondaryColor, opacity: 0.5 }}
                                                 ></span>
                                                 {bullet}
                                             </li>
