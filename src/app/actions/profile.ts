@@ -87,6 +87,19 @@ export async function getProfile(): Promise<ProfileData> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return createDefaultProfile();
 
+    // 1. Intentar cargar el draft más reciente
+    const { data: draft } = await supabase
+        .from('drafts')
+        .select('content')
+        .eq('user_id', user.id)
+        .eq('is_current', true)
+        .single()
+
+    if (draft) {
+        return draft.content as ProfileData;
+    }
+
+    // 2. Fallback al perfil principal si no hay draft
     const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -105,6 +118,8 @@ export async function getPublicProfile(): Promise<ProfileData> {
     noStore();
     const supabase = await createClient()
 
+    // Intentar traer el draft actual primero para la vista pública también, 
+    // o mantener profiles como 'producción'. Usaremos el perfil principal para lo público.
     const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -141,13 +156,42 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
 
     const theme_color = formData.get('theme_color') as string
 
-    // Clean up contact info before saving (Security/Consistency)
-    const cleanedContactInfo = {
-        email: contact_info.email || '',
-        phone: contact_info.phone || ''
-        // Explicitly excluding linkedin/github
+    const profileData: ProfileData = {
+        personalInfo: {
+            name: full_name.split(' ')[0] || '',
+            lastName: full_name.split(' ').slice(1).join(' ') || '',
+            role,
+            photo: '', // Se gestiona aparte o lo extraemos si existe
+            photos: ['', '', ''],
+            contactInfo: contact_info
+        },
+        skills,
+        experience,
+        education,
+        objective: bio,
+        themeColor: theme_color
     };
 
+    // 1. Marcar versiones anteriores como no actuales
+    await supabase
+        .from('drafts')
+        .update({ is_current: false })
+        .eq('user_id', user.id);
+
+    // 2. Insertar nueva versión (Draft)
+    const { error: draftError } = await supabase
+        .from('drafts')
+        .insert({
+            user_id: user.id,
+            content: profileData,
+            is_current: true
+        });
+
+    if (draftError) {
+        console.error('Error saving draft:', draftError);
+    }
+
+    // 3. Actualizar perfil principal (Producción)
     const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -158,7 +202,10 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
             skills,
             experience,
             education,
-            contact_info: cleanedContactInfo,
+            contact_info: {
+                email: contact_info.email || '',
+                phone: contact_info.phone || ''
+            },
             theme_color,
             updated_at: new Date().toISOString(),
         })

@@ -4,10 +4,13 @@ import { useEffect, useRef } from 'react';
 import { useCVStore } from './store';
 import { updateProfile } from '@/app/actions/profile';
 
+import { createClient } from '@/lib/supabase/client';
+
 export function useAutoSave() {
     const { cvData, setIsSaving, setLastSaved } = useCVStore();
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const initialLoadRef = useRef(true);
+    const supabase = createClient();
 
     useEffect(() => {
         // Skip initial mount to prevent saving immediately on load
@@ -25,6 +28,10 @@ export function useAutoSave() {
 
         // Debounce de 1.5 segundos
         timeoutRef.current = setTimeout(async () => {
+            // Verificar sesión antes de intentar guardar
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
             setIsSaving(true);
 
             try {
