@@ -107,51 +107,16 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setCVData({ ...cvData, themeColor: color });
     };
 
-    const [isDownloading, setIsDownloading] = useState(false);
+    const handlePrint = async (isAts: boolean) => {
+        // Preparar la vista para la impresión
+        setIsAtsFriendly(isAts);
+        setViewMode('preview');
 
-    const handleDownload = async (isAts: boolean) => {
-        setIsDownloading(true);
-        try {
-            const html2pdfModule = await import('html2pdf.js');
-            const html2pdf = html2pdfModule.default || html2pdfModule;
+        // Esperar un momento a que el DOM se actualice y las fuentes carguen
+        await new Promise(r => setTimeout(r, 500));
 
-            if (!html2pdf || typeof html2pdf !== 'function') {
-                throw new Error('html2pdf library not loaded correctly');
-            }
-
-            const fileName = `${cvData?.personalInfo?.name || 'Daniel'}-${cvData?.personalInfo?.lastName || 'Ortiz'}-CV${isAts ? '-ATS' : ''}.pdf`;
-
-            setIsAtsFriendly(isAts);
-            setViewMode('preview');
-
-            // Delay para que el render se estabilice
-            await new Promise(r => setTimeout(r, 1200));
-
-            const element = document.querySelector('.cv-print-area');
-            if (!element) throw new Error('CV area not found');
-
-            const opt = {
-                margin: 0,
-                filename: fileName,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: 850
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            await (html2pdf() as any).set(opt).from(element as HTMLElement).save();
-        } catch (err) {
-            console.error('Error generating PDF:', err);
-            alert('Hubo un problema al generar el PDF. Por favor, intenta de nuevo o usa la opción Imprimir.');
-        } finally {
-            setIsDownloading(false);
-        }
+        // Disparar la impresión nativa del navegador
+        window.print();
     };
 
     if (loading || !cvData) return null;
@@ -183,9 +148,8 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                             setViewMode('preview');
                         }
                     }}
-                    onDownloadPremium={() => handleDownload(false)}
-                    onDownloadAts={() => handleDownload(true)}
-                    isDownloading={isDownloading}
+                    onDownloadPremium={() => handlePrint(false)}
+                    onDownloadAts={() => handlePrint(true)}
                 />
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 custom-scrollbar bg-gray-50/50">

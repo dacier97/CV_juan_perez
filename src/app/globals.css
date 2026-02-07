@@ -118,43 +118,42 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 0;
   }
 
-  body {
+  /* Ocultar ABSOLUTAMENTE TODO por defecto */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Hacer visible exclusivamente el CV y su contenido */
+  .cv-print-area,
+  .cv-print-area * {
+    visibility: visible !important;
+  }
+
+  /* Posicionar el CV al inicio de la página para la impresión */
+  .cv-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    /* Ancho A4 exacto */
+    min-height: 297mm !important;
+    /* Alto A4 exacto */
+    margin: 0 !important;
+    padding: 20mm !important;
+    /* Margen interno profesional */
+    box-shadow: none !important;
+    border: none !important;
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Ocultar todo excepto el área de impresión */
-  body>*:not(main),
-  nav,
-  aside,
-  .no-print {
-    display: none !important;
-  }
-
-  .cv-print-area {
-    visibility: visible !important;
-    display: block !important;
-    position: relative !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  /* Asegurar que las imágenes sean visibles */
-  img {
-    visibility: visible !important;
-    display: block !important;
-    max-width: 100%;
-  }
-
-  .cv-print-area * {
-    visibility: visible !important;
+  /* Forzar que el fondo y las imágenes se impriman */
+  body {
+    background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
