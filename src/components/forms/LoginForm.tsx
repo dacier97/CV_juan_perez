@@ -10,15 +10,7 @@ const LoginForm = () => {
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
-    const supabase = createClient();
-
-    useEffect(() => {
-        const checkSession = async () => {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) router.replace('/dashboard');
-        };
-        checkSession();
-    }, [router, supabase.auth]);
+    const [supabase] = useState(() => createClient());
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
