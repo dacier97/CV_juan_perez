@@ -88,7 +88,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
 
     // Original Premium Mode
     return (
-        <div className="cv-print-area w-full max-w-[850px] mx-auto bg-white border border-gray-100 my-4 md:my-16 p-6 md:p-16 min-h-[1100px] flex flex-col text-foreground rounded-none md:rounded-lg font-sans">
+        <div className="cv-print w-full max-w-[850px] mx-auto bg-white border border-gray-100 my-4 md:my-16 p-6 md:p-16 min-h-[1100px] flex flex-col text-foreground rounded-none md:rounded-lg font-sans">
             {/* Header Section */}
             <header className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 md:mb-12 gap-10 md:gap-0">
                 <div className="relative group shrink-0">
@@ -186,7 +186,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                 {/* Right Column - Main Content */}
                 <main className="flex-1 md:pl-12 md:border-l border-gray-100">
                     {/* Perfil Profesional */}
-                    <section className="mb-12 md:mb-16 relative">
+                    <section className="section mb-12 md:mb-16 relative">
                         <div className="hidden md:block absolute left-[-49px] top-0 bottom-0 w-[2px] bg-gray-200"></div>
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-4 md:mb-6 text-foreground font-display">Perfil Profesional</h3>
                         <p className="text-sm md:text-[15px] leading-relaxed text-gray-600 font-medium text-justify">
@@ -198,7 +198,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-8 md:mb-12 text-foreground font-display">Experiencia Laboral</h3>
                         <div className="space-y-10 md:space-y-16">
                             {(experience || []).map((exp) => (
-                                <div key={exp.id} className="relative group">
+                                <div key={exp.id} className="experience-item relative group">
                                     <div className="mb-4 md:mb-6">
                                         <p className="text-[10px] md:text-xs font-black text-gray-400 mb-2 md:mb-3 tracking-[0.2em] uppercase">{exp.period}</p>
                                         <h4 className="text-sm md:text-base font-bold tracking-widest uppercase text-foreground leading-snug">{exp.title}</h4>
@@ -225,7 +225,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                         <h3 className="text-lg md:text-xl font-bold tracking-[0.15em] uppercase mb-8 md:mb-12 text-foreground font-display">ESTUDIOS Y CERTIFICACIONES</h3>
                         <div className="space-y-10">
                             {(education || []).map((edu) => (
-                                <div key={edu.id} className="relative group">
+                                <div key={edu.id} className="education-item relative group">
                                     <div className="mb-2">
                                         <p className="text-[10px] md:text-xs font-black text-gray-400 mb-2 tracking-[0.2em] uppercase">{edu.period}</p>
                                         <h4 className="text-sm md:text-base font-bold tracking-widest uppercase text-foreground leading-snug">{edu.degree}</h4>

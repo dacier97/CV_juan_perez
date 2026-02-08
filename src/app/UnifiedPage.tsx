@@ -152,8 +152,8 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
                     onDownloadAts={() => handlePrint(true)}
                 />
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 custom-scrollbar bg-gray-50/50">
-                    <div className="max-w-5xl mx-auto space-y-8">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 custom-scrollbar bg-gray-50/50 print:overflow-visible print:h-auto">
+                    <div className="max-w-5xl mx-auto space-y-8 cv-print min-h-screen">
                         {viewMode === 'edit' && !!user ? (
                             <div className="animate-in fade-in zoom-in-95 duration-300">
                                 <CVEditor data={cvData} onChange={setCVData} />

@@ -121,36 +121,46 @@ body {
     margin: 12mm;
   }
 
+  html,
   body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Ocultar elementos de la interfaz */
-  button,
-  nav,
-  aside,
-  footer,
-  .no-print {
-    display: none !important;
-  }
-
-  /* Asegurar que el CV ocupe todo el ancho y se vea perfecto */
-  .cv-print-area {
-    visibility: visible !important;
+  /* CV Contenedor principal para impresión */
+  .cv-print {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     display: block !important;
-    position: relative !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
-    background: white !important;
   }
 
-  .cv-print-area * {
-    visibility: visible !important;
+  /* Evitar cortes feos en secciones */
+  section,
+  .section,
+  .experience-item,
+  .education-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  /* Ocultar UI */
+  nav,
+  aside,
+  button,
+  footer,
+  .no-print {
+    display: none !important;
   }
 }
 
