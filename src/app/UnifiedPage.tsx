@@ -112,11 +112,21 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setIsAtsFriendly(isAts);
         setViewMode('preview');
 
-        // Esperar un momento a que el DOM se actualice y las fuentes carguen
+        // Esperar un momento a que el DOM se actualice
         await new Promise(r => setTimeout(r, 500));
+
+        const root = document.getElementById('cv-root');
+        if (root) {
+            root.style.height = 'auto';
+            root.style.overflow = 'visible';
+        }
+
+        document.body.classList.add('printing');
 
         // Disparar la impresión nativa del navegador
         window.print();
+
+        document.body.classList.remove('printing');
     };
 
     if (loading || !cvData) return null;

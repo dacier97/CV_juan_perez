@@ -16,7 +16,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
     // ATS Mode Styles
     if (isAtsFriendly) {
         return (
-            <div className="cv-print-area w-full max-w-[850px] mx-auto bg-white p-12 md:p-16 text-[#333] font-serif leading-relaxed selection:bg-gray-200">
+            <div id="cv-root" className="cv-print w-full max-w-[850px] mx-auto bg-white p-12 md:p-16 text-[#333] font-serif leading-relaxed selection:bg-gray-200">
                 {/* Simplified Header */}
                 <header className="border-b-2 border-gray-900 pb-6 mb-8 text-center">
                     <h1 className="text-4xl font-bold uppercase tracking-tight text-black mb-2">{personalInfo.name} {personalInfo.lastName}</h1>
@@ -28,17 +28,17 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
 
                 <div className="space-y-10">
                     {/* Resumen Profesional */}
-                    <section>
+                    <section className="section">
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Perfil Profesional</h2>
                         <p className="text-sm text-justify">{objective}</p>
                     </section>
 
                     {/* Experiencia */}
-                    <section>
+                    <section className="section">
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Experiencia Laboral</h2>
                         <div className="space-y-8">
                             {(experience || []).map((exp) => (
-                                <div key={exp.id}>
+                                <div key={exp.id} className="experience-item">
                                     <div className="flex justify-between items-baseline mb-1">
                                         <h3 className="text-base font-bold text-black uppercase">{exp.title}</h3>
                                         <span className="text-sm font-bold">{exp.period}</span>
@@ -55,11 +55,11 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                     </section>
 
                     {/* Educación */}
-                    <section>
+                    <section className="section">
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Estudios y Certificaciones</h2>
                         <div className="space-y-6">
                             {(education || []).map((edu) => (
-                                <div key={edu.id} className="flex justify-between items-baseline">
+                                <div key={edu.id} className="education-item flex justify-between items-baseline">
                                     <div>
                                         <h3 className="text-base font-bold uppercase">{edu.degree}</h3>
                                         <p className="text-sm">{edu.institution}</p>
@@ -71,7 +71,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                     </section>
 
                     {/* Habilidades */}
-                    <section>
+                    <section className="section">
                         <h2 className="text-xl font-bold uppercase border-b border-gray-300 mb-4 pb-1">Habilidades</h2>
                         <div className="flex flex-wrap gap-x-6 gap-y-2">
                             {(skills.professional || []).map((skill, index) => (
@@ -88,7 +88,7 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
 
     // Original Premium Mode
     return (
-        <div className="cv-print w-full max-w-[850px] mx-auto bg-white border border-gray-100 my-4 md:my-16 p-6 md:p-16 min-h-[1100px] flex flex-col text-foreground rounded-none md:rounded-lg font-sans">
+        <div id="cv-root" className="cv-print w-full max-w-[850px] mx-auto bg-white border border-gray-100 my-4 md:my-16 p-6 md:p-16 flex flex-col text-foreground rounded-none md:rounded-lg font-sans">
             {/* Header Section */}
             <header className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 md:mb-12 gap-10 md:gap-0">
                 <div className="relative group shrink-0">

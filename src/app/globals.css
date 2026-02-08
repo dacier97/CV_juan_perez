@@ -121,46 +121,50 @@ body {
     margin: 12mm;
   }
 
-  html,
-  body {
-    height: auto !important;
-    min-height: 0 !important;
+  /* Fuerza un flujo natural del documento durante la impresión */
+  body.printing * {
     overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  body {
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* CV Contenedor principal para impresión */
-  .cv-print {
+  /* Ocultar elementos de la interfaz */
+  nav,
+  aside,
+  button,
+  footer,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* El CV ocupa toda la hoja con id específico para control total */
+  #cv-root {
+    width: 100% !important;
     height: auto !important;
-    max-height: none !important;
     overflow: visible !important;
     display: block !important;
-    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    background: white !important;
   }
 
-  /* Evitar cortes feos en secciones */
+  /* Saltos de página limpios en secciones críticas */
   section,
   .section,
   .experience-item,
   .education-item {
     break-inside: avoid;
     page-break-inside: avoid;
-    margin-bottom: 1rem;
-  }
-
-  /* Ocultar UI */
-  nav,
-  aside,
-  button,
-  footer,
-  .no-print {
-    display: none !important;
+    margin-bottom: 2rem;
   }
 }
 
