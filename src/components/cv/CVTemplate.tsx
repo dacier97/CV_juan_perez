@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { ProfileData } from '@/lib/types';
 
 interface CVTemplateProps {
@@ -107,6 +106,8 @@ const CVTemplate = ({ data, isAtsFriendly = false }: CVTemplateProps) => {
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 style={{ display: 'block' }}
                                 crossOrigin="anonymous"
+                                loading="eager"
+                                decoding="sync"
                             />
                         ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">

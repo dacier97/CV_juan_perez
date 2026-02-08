@@ -112,8 +112,24 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setIsAtsFriendly(isAts);
         setViewMode('preview');
 
-        // Esperar un momento a que el DOM se actualice
-        await new Promise(r => setTimeout(r, 500));
+        // Función para esperar a que la imagen cargue
+        const waitForImage = () => {
+            const photoUrl = cvData?.personalInfo?.photo;
+            if (!photoUrl) return Promise.resolve();
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = resolve; // Continuar aunque falle
+                img.src = photoUrl;
+            });
+        };
+
+        // Esperar imagen y actualización del DOM
+        await Promise.all([
+            waitForImage(),
+            new Promise(r => setTimeout(r, 800))
+        ]);
 
         const root = document.getElementById('cv-root');
         if (root) {
