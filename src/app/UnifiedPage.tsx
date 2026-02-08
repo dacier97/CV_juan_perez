@@ -112,24 +112,34 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         setIsAtsFriendly(isAts);
         setViewMode('preview');
 
-        // Función para esperar a que la imagen cargue
-        const waitForImage = () => {
-            const photoUrl = cvData?.personalInfo?.photo;
-            if (!photoUrl) return Promise.resolve();
+        // Solución PRO: Convertir imagen a Base64 para asegurar que el navegador la imprima
+        const photoUrl = cvData?.personalInfo?.photo;
+        const originalPhoto = photoUrl;
 
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = resolve;
-                img.onerror = resolve; // Continuar aunque falle
-                img.src = photoUrl;
-            });
-        };
+        if (photoUrl && !photoUrl.startsWith('data:')) {
+            try {
+                const response = await fetch(photoUrl);
+                const blob = await response.blob();
+                const base64 = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(blob);
+                });
+                // Actualizar temporalmente en el store local
+                setCVData({
+                    ...cvData!,
+                    personalInfo: {
+                        ...cvData!.personalInfo,
+                        photo: base64
+                    }
+                });
+            } catch (err) {
+                console.error('Error converting image to base64:', err);
+            }
+        }
 
-        // Esperar imagen y actualización del DOM
-        await Promise.all([
-            waitForImage(),
-            new Promise(r => setTimeout(r, 800))
-        ]);
+        // Esperar un momento a que el DOM se actualice
+        await new Promise(r => setTimeout(r, 1000));
 
         const root = document.getElementById('cv-root');
         if (root) {
@@ -143,6 +153,17 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         window.print();
 
         document.body.classList.remove('printing');
+
+        // Restaurar la URL original
+        if (originalPhoto && originalPhoto !== cvData?.personalInfo?.photo) {
+            setCVData({
+                ...cvData!,
+                personalInfo: {
+                    ...cvData!.personalInfo!,
+                    photo: originalPhoto
+                }
+            });
+        }
     };
 
     if (loading || !cvData) return null;
