@@ -29,11 +29,11 @@ const Navbar = ({
     const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
     const socialLinks = {
-        linkedin: "https://www.linkedin.com/in/daniel-ortiz-developer-full/",
-        instagram: "https://www.instagram.com/danny_ortiza?igsh=ZHFvanY3ZWlsb3J6",
-        x: "https://x.com",
-        tiktok: "https://tiktok.com",
-        facebook: "https://facebook.com"
+        linkedin: "https://www.linkedin.com/in/juan-perez",
+        instagram: "https://www.instagram.com/juanperez",
+        x: "https://x.com/juanperez",
+        tiktok: "https://tiktok.com/@juanperez",
+        facebook: "https://facebook.com/juanperez"
     };
 
     const socialIcons = [

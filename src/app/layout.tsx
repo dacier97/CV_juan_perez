@@ -13,26 +13,24 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cv-daniel-ortiz.vercel.app"),
-  title: "Daniel Ortiz | Ingeniero Electrónico & Full Stack Developer",
-  description: "Portafolio profesional, proyectos, experiencia en telecomunicaciones, redes, cloud, React, Next.js y automatización con Power Platform.",
-  keywords: ["ingeniero electrónico", "telecomunicaciones", "React", "Next.js", "cloud", "Supabase", "portafolio", "CV"],
-  authors: [{ name: "Daniel Ortiz" }],
+  title: "Juan Pérez | Curriculum Vitae Profesional",
+  description: "Portafolio profesional y CV de Juan Pérez. Experiencia detallada, habilidades y trayectoria laboral.",
+  keywords: ["Juan Pérez", "curriculum vitae", "portafolio", "CV", "experiencia laboral"],
+  authors: [{ name: "Juan Pérez" }],
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: "Daniel Ortiz | Ingeniero Electrónico & Full Stack Developer",
-    description: "Portafolio profesional, proyectos, experiencia en telecomunicaciones, redes, cloud, React, Next.js y automatización con Power Platform.",
-    url: "https://cv-daniel-ortiz.vercel.app",
-    siteName: "Daniel Ortiz Portfolio",
+    title: "Juan Pérez | Curriculum Vitae Profesional",
+    description: "Portafolio profesional y CV de Juan Pérez. Experiencia detallada, habilidades y trayectoria laboral.",
+    siteName: "Juan Pérez CV",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Daniel Ortiz | Ingeniero Electrónico & Full Stack Developer",
+        alt: "Juan Pérez | Curriculum Vitae Profesional",
       },
     ],
     locale: "es_CO",
@@ -40,8 +38,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Daniel Ortiz | Ingeniero Electrónico & Full Stack Developer",
-    description: "Portafolio profesional, proyectos, experiencia en telecomunicaciones, redes, cloud, React, Next.js y automatización con Power Platform.",
+    title: "Juan Pérez | Curriculum Vitae Profesional",
+    description: "Portafolio profesional y CV de Juan Pérez. Experiencia detallada, habilidades y trayectoria laboral.",
     images: ["/og-image.png"],
   },
 };

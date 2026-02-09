@@ -64,7 +64,7 @@ const Sidebar = ({
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent-yellow rounded-xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
                                 <div className="relative w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary shadow-xl border border-gray-100 group-hover:scale-110 transition-transform duration-300">
-                                    <Zap size={24} className="fill-primary/20" />
+                                    <span className="text-xl font-black tracking-tighter">JP</span>
                                 </div>
                             </div>
                             {/* Close button for mobile */}

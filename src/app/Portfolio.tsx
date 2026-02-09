@@ -6,8 +6,8 @@ import { User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
-  title: "Daniel Ortiz | Portfolio Profesional",
-  description: "Explora mi trayectoria profesional, proyectos y habilidades en Ingeniería Electrónica y Desarrollo Full Stack.",
+  title: "Juan Pérez | Curriculum Vitae Profesional",
+  description: "Explora la trayectoria profesional y habilidades de Juan Pérez.",
 };
 
 export default async function PortfolioPage() {
@@ -33,7 +33,7 @@ export default async function PortfolioPage() {
       </main>
 
       <footer className="py-12 text-center text-gray-400 text-sm">
-        <p>© {new Date().getFullYear()} Daniel Ortiz. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} Juan Pérez. Todos los derechos reservados.</p>
       </footer>
     </div>
   );

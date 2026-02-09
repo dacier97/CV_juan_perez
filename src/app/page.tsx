@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-    title: "Daniel Ortiz | Portfolio Profesional",
-    description: "Explora mi trayectoria profesional..."
+    title: "Juan Pérez | Curriculum Vitae Profesional",
+    description: "Curriculum Vitae y Trayectoria Profesional de Juan Pérez."
 };
 
 export default async function Home() {
