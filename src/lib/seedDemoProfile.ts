@@ -1,14 +1,15 @@
-import { createClient as createBrowserClient } from './supabase/client';
+import { createClient } from './supabase/server';
 import { ProfileData } from './types';
 
 /**
- * Script para sembrar datos DEMO automáticamente si el usuario no tiene perfil.
- * Compatible con Cliente y Servidor.
+ * Script de servidor para sembrar datos DEMO automáticamente.
+ * Se ejecuta exclusivamente en el servidor para garantizar que la sesión (cookies)
+ * y el RLS funcionen correctamente.
  */
-export async function seedDemoProfile(supabaseInstance?: any) {
-    const supabase = supabaseInstance || createBrowserClient();
+export async function seedDemoProfile() {
+    const supabase = await createClient();
 
-    // 1. Obtener usuario actual
+    // 1. Obtener usuario actual desde la sesión del servidor
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -21,12 +22,12 @@ export async function seedDemoProfile(supabaseInstance?: any) {
         .eq('id', userId)
         .single();
 
-    // Si ya tiene nombre o bio, asumimos que no es un perfil nuevo/vacio
+    // Si ya existe nombre o bio, no sembramos nada nuevo
     if (profile?.full_name || profile?.bio) {
         return;
     }
 
-    // 3. Datos DEMO Masculinos (Juan Perez) - Según requerimientos
+    // 3. Datos DEMO Profesionales (Juan Perez)
     const demoData = {
         full_name: "Juan Perez",
         role: "Senior Product Manager | UX & Digital Strategy",
@@ -48,9 +49,9 @@ export async function seedDemoProfile(supabaseInstance?: any) {
         experience: [
             {
                 id: 1,
-                period: "2019 - Presente",
+                period: "2021 - Actual",
                 title: "Product Manager",
-                description: "Liderazgo de la visión y estrategia de productos SaaS de alto impacto. Coordinación de equipos multidisciplinarios bajo metodologías ágiles.",
+                description: "Liderazgo de la visión y estrategia de productos SaaS de alto impacto en Globant.",
                 bullets: [
                     "Incremento del 40% en retención de usuarios a través de mejoras en UX.",
                     "Liderazgo en el lanzamiento de 3 productos clave del ecosistema digital.",
@@ -59,61 +60,37 @@ export async function seedDemoProfile(supabaseInstance?: any) {
             },
             {
                 id: 2,
-                period: "2016 - 2019",
+                period: "2019 - 2021",
                 title: "UX Lead",
-                description: "Gestión del diseño de experiencia de usuario para plataformas fintech. Implementación de sistemas de diseño escalables.",
+                description: "Gestión del diseño de experiencia de usuario para plataformas en Rappi.",
                 bullets: [
                     "Reducción del churn rate en un 25% tras rediseño completo del checkout.",
                     "Implementación de cultura de user research y pruebas de usabilidad continuas.",
                     "Dirección de un equipo de 5 diseñadores UI/UX."
-                ]
-            },
-            {
-                id: 3,
-                period: "2014 - 2016",
-                title: "Business Analyst",
-                description: "Análisis de procesos de negocio y requisitos técnicos para la transformación digital de clientes corporativos.",
-                bullets: [
-                    "Levantamiento de requerimientos para más de 12 proyectos exitosos.",
-                    "Intervención en la optimización de flujos de trabajo reduciendo tiempos en un 30%.",
-                    "Aseguramiento del alineamiento entre negocio y tecnología."
                 ]
             }
         ],
         education: [
             {
                 id: 1,
-                period: "2010 - 2015",
+                period: "2016",
                 degree: "Ingeniería Industrial",
                 institution: "Universidad Nacional"
-            },
-            {
-                id: 2,
-                period: "2017 - 2018",
-                degree: "MBA Digital Business",
-                institution: "Business School International"
             }
         ],
         theme_color: "#FF5E1A",
         avatar_url: "https://randomuser.me/api/portraits/men/44.jpg"
     };
 
-    // 4. Insertar/Upsert en la tabla 'profiles'
-    const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-            id: userId,
-            ...demoData,
-            updated_at: new Date().toISOString()
-        });
+    // 4. Insertar en 'profiles' usando el ID del usuario
+    await supabase.from('profiles').upsert({
+        id: userId,
+        ...demoData,
+        updated_at: new Date().toISOString()
+    });
 
-    if (upsertError) {
-        console.error('Error seeding demo profile:', upsertError);
-        return;
-    }
-
-    // 5. Sincronizar con la tabla 'drafts' para que el editor también vea los datos
-    const uiFriendlyData: ProfileData = {
+    // 5. Sincronizar con 'drafts' para que el editor (cliente) vea la data inmediatamente
+    const uiData: ProfileData = {
         personalInfo: {
             name: "Juan",
             lastName: "Perez",
@@ -129,12 +106,10 @@ export async function seedDemoProfile(supabaseInstance?: any) {
         themeColor: demoData.theme_color
     };
 
-    await supabase
-        .from('drafts')
-        .upsert({
-            user_id: userId,
-            content: uiFriendlyData,
-            is_current: true,
-            updated_at: new Date().toISOString()
-        });
+    await supabase.from('drafts').upsert({
+        user_id: userId,
+        content: uiData,
+        is_current: true,
+        updated_at: new Date().toISOString()
+    });
 }

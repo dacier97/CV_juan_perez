@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     }
 
     // Ejecutar el sembrado de datos DEMO si es necesario (Server Side)
-    await seedDemoProfile(supabase);
+    await seedDemoProfile();
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
