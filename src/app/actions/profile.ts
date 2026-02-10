@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 import { ProfileData, ActionResult } from '@/lib/types'
 
+// ID Maestro de Juan Pérez (proporcionado por el usuario)
+const MASTER_USER_ID = '2e371cb5-4e04-442d-aa5c-1eb107e38b2f';
+
 // Helper to guarantee safe data structure
 function normalizeProfile(data: any): ProfileData {
     if (!data) {
@@ -97,9 +100,14 @@ export async function getProfile(): Promise<ProfileData> {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return createDefaultProfile();
 
-    console.log(`[GET_PROFILE] Fetching data for user: ${user.email} (ID: ${user.id})`);
+    // SI NO HAY USUARIO -> CARGAR PERFIL PÚBLICO (MODO PORTAFOLIO)
+    if (!user) {
+        console.log(`[GET_PROFILE] No user. Loading public master profile.`);
+        return getPublicProfile();
+    }
+
+    console.log(`[GET_PROFILE] Auth user: ${user.email} (ID: ${user.id})`);
 
     // 1. Cargar Draft y Perfil en paralelo
     const [draftRes, profileRes] = await Promise.all([
@@ -110,96 +118,68 @@ export async function getProfile(): Promise<ProfileData> {
     const draft = draftRes.data;
     const profile = profileRes.data;
 
-    // 2. ¿Hay datos reales en la tabla Profiles? (Ej. tras un SQL manual)
     const profileHasRealData = profile && (profile.full_name?.trim() || profile.bio?.trim());
 
-    // 3. Lógica de Sincronización
     if (profileHasRealData) {
         const pNormalized = normalizeProfile(profile);
-
-        if (!draft || !draft.content) {
-            console.log(`[GET_PROFILE] No draft found. Using Profile data.`);
-            return pNormalized;
-        }
+        if (!draft || !draft.content) return pNormalized;
 
         const d = draft.content as ProfileData;
         const draftIsEmpty = !d.personalInfo?.name?.trim() && !d.objective?.trim();
 
-        if (draftIsEmpty) {
-            console.log(`[GET_PROFILE] Draft is empty. Recovering from Profile.`);
-            return pNormalized;
-        }
+        if (draftIsEmpty) return pNormalized;
 
-        // Si el perfil fue actualizado manualmente (SQL) después del último draft, priorizar perfil
         if (profile.updated_at && draft.updated_at && new Date(profile.updated_at) > new Date(draft.updated_at)) {
-            console.log(`[GET_PROFILE] Profile is newer than Draft (SQL update). Syncing.`);
             return pNormalized;
         }
 
-        console.log(`[GET_PROFILE] Returning existing Draft.`);
         return d;
     }
 
-    // 4. SI TODO ESTÁ VACÍO -> SEED REALISTA
-    console.log(`[SEED] Sembrando datos realistas para ${user.email}`);
-
-    const bioRealista = "Senior Project Manager con más de 12 años de trayectoria internacional liderando proyectos de infraestructura tecnológica de gran escala y transformación digital. Experto en Cloud Computing (AWS/Azure), metodologías ágiles (Scrum/Kanban) y marcos de gobernanza ITIL. Especialista en la gestión de equipos multidisciplinarios y la implementación de soluciones de alta disponibilidad que garantizan la continuidad operativa. Reconocido por mi capacidad estratégica para alinear la tecnología con los objetivos de negocio, optimizando presupuestos y reduciendo el Time-to-Market en implementaciones críticas.";
-
+    // 4. SI TODO ESTÁ VACÍO -> SEED (Para nuevos usuarios)
     const demoData = {
         full_name: "Juan Pérez",
         role: "Senior Project Manager | Infraestructura TI & Transformación Digital",
-        bio: bioRealista,
+        bio: "Gerente de proyectos con más de 12 años liderando iniciativas de transformación digital, infraestructura tecnológica y equipos ágiles.",
         avatar_url: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
         theme_color: "#FF5E1A",
-        contact_info: {
-            email: user.email || "juan_perez@hotmail.com",
-            phone: "+57 316 555 8899"
-        },
-        skills: {
-            professional: ["Gestión de Proyectos", "Infraestructura Cloud", "Scrum / Agile", "ITIL", "Automatización"]
-        },
-        experience: [
-            {
-                id: 1,
-                period: "2021-Actual",
-                title: "Senior PM — TechFlow",
-                description: "Liderazgo de migraciones críticas de infraestructura cloud.",
-                bullets: ["Migración exitosa de 50+ servidores críticos.", "Reducción de costos operativos en un 20%."]
-            },
-            {
-                id: 2,
-                period: "2018-2021",
-                title: "Infra Manager — Telecom Colombia",
-                description: "Gestión de redes GPON y centros de datos.",
-                bullets: ["Optimización del uptime al 99.9%.", "Liderazgo de equipo técnico nacional."]
-            }
-        ],
-        education: [
-            { id: 1, period: "2014", degree: "Ingeniería Electrónica", institution: "Universidad Nacional" }
-        ],
-        avatar_gallery: [
-            "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
-            "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=400",
-            "https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=400"
-        ]
+        contact_info: { email: user.email || MASTER_USER_ID, phone: "+57 316 555 8899" },
+        skills: { professional: ["Gestión de Proyectos", "Cloud Computing", "Scrum", "ITIL"] },
+        experience: [{ id: 1, period: "2021-Actual", title: "Senior PM — TechFlow", description: "Infraestructura cloud.", bullets: ["50+ servidores."] }],
+        education: [{ id: 1, period: "2014", degree: "Infraestructura TI", institution: "Universidad Nacional" }]
     };
 
-    await supabase.from('profiles').upsert({
-        id: user.id,
-        ...demoData,
-        updated_at: new Date().toISOString()
-    });
-
+    await supabase.from('profiles').upsert({ id: user.id, ...demoData, updated_at: new Date().toISOString() });
     const uiData = normalizeProfile({ ...demoData });
-
-    await supabase.from('drafts').upsert({
-        user_id: user.id,
-        content: uiData,
-        is_current: true,
-        updated_at: new Date().toISOString()
-    });
+    await supabase.from('drafts').upsert({ user_id: user.id, content: uiData, is_current: true, updated_at: new Date().toISOString() });
 
     return uiData;
+}
+
+export async function getPublicProfile(): Promise<ProfileData> {
+    const supabase = await createClient()
+
+    // Buscamos específicamente el ID de Juan Pérez que el usuario quiere mostrar
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', MASTER_USER_ID)
+        .maybeSingle()
+
+    if (error || !data) {
+        console.error('Error fetching public profile:', error)
+        // Fallback al último perfil actualizado si el ID no coincide exactamente
+        const { data: latest } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        return latest ? normalizeProfile(latest) : createDefaultProfile();
+    }
+
+    return normalizeProfile(data)
 }
 
 export async function updateProfile(formData: FormData): Promise<ActionResult> {
@@ -218,11 +198,8 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         experience = JSON.parse(formData.get('experience') as string || '[]');
         education = JSON.parse(formData.get('education') as string || '[]');
         contact_info = JSON.parse(formData.get('contact_info') as string || '{}');
-    } catch (e) {
-        return { success: false, error: "Invalid data format" };
-    }
+    } catch (e) { return { success: false, error: "Invalid data" }; }
 
-    // 1. FUNDAMENTAL: Recuperar foto actual antes de guardar el Draft
     const { data: current } = await supabase.from('profiles').select('avatar_url, avatar_gallery').eq('id', user.id).maybeSingle();
 
     const profileData: ProfileData = {
@@ -232,7 +209,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
             role,
             photo: current?.avatar_url || '',
             photos: ensureMinLength(current?.avatar_gallery || [], 3),
-            contactInfo: contact_info
+            contactInfo: normalizedContact(contact_info)
         },
         skills,
         experience,
@@ -241,28 +218,21 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         themeColor: theme_color
     };
 
-    // 2. Guardar en Profiles (DB Principal)
-    const { error: pErr } = await supabase
-        .from('profiles')
-        .upsert({
-            id: user.id,
-            full_name,
-            role,
-            bio,
-            skills,
-            experience,
-            education,
-            contact_info: {
-                email: contact_info.email || '',
-                phone: contact_info.phone || ''
-            },
-            theme_color,
-            updated_at: new Date().toISOString(),
-        });
+    const { error: pErr } = await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name,
+        role,
+        bio,
+        skills,
+        experience,
+        education,
+        contact_info: { email: contact_info.email || '', phone: contact_info.phone || '' },
+        theme_color,
+        updated_at: new Date().toISOString(),
+    });
 
     if (pErr) return { success: false, error: pErr.message };
 
-    // 3. Guardar en Drafts (UI Working Copy)
     await supabase.from('drafts').upsert({
         user_id: user.id,
         content: profileData,
@@ -272,6 +242,13 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
 
     revalidatePath('/')
     return { success: true };
+}
+
+function normalizedContact(contact: any) {
+    return {
+        email: contact?.email || '',
+        phone: contact?.phone || ''
+    };
 }
 
 export async function uploadAvatar(formData: FormData): Promise<ActionResult & { url?: string }> {
@@ -286,34 +263,15 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResult & {
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-    const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(fileName, file)
+    await supabase.storage.from('assets').upload(fileName, file);
+    const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(fileName);
 
-    if (uploadError) return { success: false, error: uploadError.message }
-
-    const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fileName)
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_gallery')
-        .eq('id', user.id)
-        .maybeSingle()
-
-    const gallery = [...(profile?.avatar_gallery || [])]
+    const { data: profile } = await supabase.from('profiles').select('avatar_gallery').eq('id', user.id).maybeSingle();
+    const gallery = [...(profile?.avatar_gallery || [])];
     while (gallery.length <= slotIndex) gallery.push('');
-    gallery[slotIndex] = publicUrl
+    gallery[slotIndex] = publicUrl;
 
-    await supabase
-        .from('profiles')
-        .update({
-            avatar_url: publicUrl,
-            avatar_gallery: gallery,
-            updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
+    await supabase.from('profiles').update({ avatar_url: publicUrl, avatar_gallery: gallery, updated_at: new Date().toISOString() }).eq('id', user.id);
 
     revalidatePath('/')
     return { success: true, url: publicUrl }
@@ -323,28 +281,7 @@ export async function selectAvatar(url: string): Promise<ActionResult> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Not authenticated' }
-
-    await supabase
-        .from('profiles')
-        .update({
-            avatar_url: url,
-            updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-
+    await supabase.from('profiles').update({ avatar_url: url, updated_at: new Date().toISOString() }).eq('id', user.id);
     revalidatePath('/')
     return { success: true }
-}
-
-export async function getPublicProfile(): Promise<ProfileData> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-    if (error || !data) return createDefaultProfile();
-    return normalizeProfile(data)
 }
