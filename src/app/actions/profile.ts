@@ -16,7 +16,7 @@ function normalizeProfile(data: any): ProfileData {
     const name = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // Normalize Contact Info (Only email + phone)
+    // Normalize Contact Info
     const rawContact = data.contact_info || {};
     const normalizedContact = {
         email: rawContact.email || '',
@@ -31,14 +31,13 @@ function normalizeProfile(data: any): ProfileData {
             photo: data.avatar_url || '',
             photos: Array.isArray(data.avatar_gallery) && data.avatar_gallery.length > 0
                 ? ensureMinLength(data.avatar_gallery, 3)
-                : ['', '', ''],
+                : [data.avatar_url || '', '', ''],
             contactInfo: normalizedContact
         },
         skills: {
             professional: Array.isArray(data.skills?.professional) ? data.skills.professional : []
         },
         experience: Array.isArray(data.experience) ? data.experience.map((exp: any, index: number) => {
-            // Soporte para scripts SQL que usan company/role en vez de title
             let title = exp.title || '';
             if (!title && exp.role && exp.company) {
                 title = `${exp.role} — ${exp.company}`;
@@ -55,7 +54,6 @@ function normalizeProfile(data: any): ProfileData {
             };
         }) : [],
         education: Array.isArray(data.education) ? data.education.map((edu: any, index: number) => {
-            // Soporte para scripts SQL que usan 'year' en vez de 'period'
             return {
                 id: edu.id || index + 1,
                 period: edu.period || edu.year || '',
@@ -63,7 +61,7 @@ function normalizeProfile(data: any): ProfileData {
                 institution: edu.institution || ''
             };
         }) : [],
-        objective: data.bio || '', // DB 'bio' maps to UI 'objective'
+        objective: data.bio || '',
         themeColor: data.theme_color || '#FF5E1A'
     };
 }
@@ -101,46 +99,55 @@ export async function getProfile(): Promise<ProfileData> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return createDefaultProfile();
 
-    // 1. Cargar Draft y Perfil en paralelo para comparar estados
+    // 1. Cargar Draft y Perfil en paralelo
     const [draftRes, profileRes] = await Promise.all([
-        supabase.from('drafts').select('content').eq('user_id', user.id).eq('is_current', true).single(),
-        supabase.from('profiles').select('*').eq('id', user.id).single()
+        supabase.from('drafts').select('content, updated_at').eq('user_id', user.id).eq('is_current', true).maybeSingle(),
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
     ]);
 
     const draft = draftRes.data;
     const profile = profileRes.data;
 
-    // 2. Lógica de Decisión: ¿Usar Draft o Perfil Principal?
-    const profileHasData = profile && (profile.full_name?.trim() || profile.bio?.trim());
+    // 2. ¿Hay datos reales en la tabla Profiles? (Ej. tras un SQL manual)
+    const profileHasRealData = profile && (profile.full_name?.trim() || profile.bio?.trim());
 
-    if (draft && draft.content) {
+    // 3. Lógica de Sincronización: Si el perfil es más nuevo o el draft está vacío, priorizar perfil
+    if (profileHasRealData) {
+        const pNormalized = normalizeProfile(profile);
+
+        if (!draft || !draft.content) {
+            return pNormalized;
+        }
+
         const d = draft.content as ProfileData;
-
-        // Si el draft existe pero está vacío (por errores previos) y el perfil TIENE DATA, usamos el perfil
         const draftIsEmpty = !d.personalInfo?.name?.trim() && !d.objective?.trim();
 
-        if (draftIsEmpty && profileHasData) {
-            console.log(`[GET_PROFILE] Draft vacío detectado para ${user.email}, recuperando desde Profiles.`);
-            return normalizeProfile(profile);
+        // Si el draft está vacío pero el perfil tiene info, mandamos el perfil
+        if (draftIsEmpty) {
+            console.log(`[GET_PROFILE] Recuperando datos desde Profiles para ${user.email}`);
+            return pNormalized;
+        }
+
+        // Si el perfil fue actualizado manualmente (SQL) después del último draft, priorizar perfil
+        if (profile.updated_at && draft.updated_at && new Date(profile.updated_at) > new Date(draft.updated_at)) {
+            console.log(`[GET_PROFILE] Perfil más reciente que draft (SQL update). Sincronizando.`);
+            return pNormalized;
         }
 
         return d;
     }
 
-    // 3. Si no hay draft, pero hay perfil con datos, lo usamos directamente
-    if (profileHasData) {
-        return normalizeProfile(profile);
-    }
-
-    // 4. SI TODO ESTÁ VACÍO (Nuevo Usuario) -> SEED PREMIUM JUAN PEREZ
-    console.log(`[SEED] Sembrando datos maestros para ${user.email}`);
+    // 4. SI TODO ESTÁ VACÍO -> SEED PREMIUM
+    console.log(`[SEED] Sembrando datos para ${user.email}`);
 
     const demoData = {
         full_name: "Juan Pérez",
-        role: "Senior Project Manager | Infratestructura TI & Transformación Digital",
+        role: "Senior Project Manager | Infraestructura TI & Transformación Digital",
         bio: "Gerente de proyectos con más de 10 años liderando iniciativas de transformación digital, infraestructura tecnológica y equipos ágiles.",
+        avatar_url: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
+        theme_color: "#FF5E1A",
         contact_info: {
-            email: user.email || '',
+            email: user.email || "juan_perez@hotmail.com",
             phone: "+57 316 555 8899"
         },
         skills: {
@@ -151,34 +158,35 @@ export async function getProfile(): Promise<ProfileData> {
                 id: 1,
                 period: "2021-Actual",
                 title: "Senior PM — TechFlow",
-                description: "Liderazgo de migraciones críticas de infraestructura cloud para clientes a nivel nacional.",
-                bullets: ["Migración exitosa de 50+ servidores críticos.", "Reducción de costos operativos en nube en 20%."]
+                description: "Liderazgo de migraciones críticas de infraestructura cloud.",
+                bullets: ["Migración exitosa de 50+ servidores críticos.", "Reducción de costos operativos en un 20%."]
             },
             {
                 id: 2,
                 period: "2018-2021",
                 title: "Infra Manager — Telecom Colombia",
-                description: "Gestión y expansión de redes GPON y centro de datos regional.",
-                bullets: ["Optimización del uptime al 99.9%.", "Liderazgo de equipo de 15 técnicos."]
+                description: "Gestión de redes GPON y centros de datos.",
+                bullets: ["Optimización del uptime al 99.9%.", "Liderazgo de equipo técnico nacional."]
             }
         ],
         education: [
             { id: 1, period: "2014", degree: "Ingeniería Electrónica", institution: "Universidad Nacional" }
         ],
-        theme_color: "#FF5E1A",
-        avatar_url: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400"
+        avatar_gallery: [
+            "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
+            "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=400",
+            "https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=400"
+        ]
     };
 
-    // Crear/Actualizar en Profiles
     await supabase.from('profiles').upsert({
         id: user.id,
         ...demoData,
         updated_at: new Date().toISOString()
     });
 
-    const uiData = normalizeProfile({ ...demoData, avatar_gallery: [demoData.avatar_url] });
+    const uiData = normalizeProfile({ ...demoData });
 
-    // Crear/Actualizar en Drafts (Fundamental para que el editor lo vea)
     await supabase.from('drafts').upsert({
         user_id: user.id,
         content: uiData,
@@ -189,33 +197,15 @@ export async function getProfile(): Promise<ProfileData> {
     return uiData;
 }
 
-export async function getPublicProfile(): Promise<ProfileData> {
-    const supabase = await createClient()
-
-    // Para la vista pública, no usamos el user_id de la sesión (no hay sesión)
-    // o mantener profiles como 'producción'. Usaremos el perfil principal para lo público.
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .single()
-
-    if (error) {
-        console.error('Error fetching public profile:', error)
-        return createDefaultProfile();
-    }
-
-    return normalizeProfile(data)
-}
-
 export async function updateProfile(formData: FormData): Promise<ActionResult> {
     const supabase = await createClient()
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    const full_name = formData.get('full_name') as string
-    const role = formData.get('role') as string
-    const bio = formData.get('bio') as string
+    const full_name = formData.get('full_name') as string || ''
+    const role = formData.get('role') as string || ''
+    const bio = formData.get('bio') as string || ''
+    const theme_color = formData.get('theme_color') as string || '#FF5E1A'
 
     let skills, experience, education, contact_info;
     try {
@@ -224,19 +214,20 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         education = JSON.parse(formData.get('education') as string || '[]');
         contact_info = JSON.parse(formData.get('contact_info') as string || '{}');
     } catch (e) {
-        console.error("JSON Parse error", e);
         return { success: false, error: "Invalid data format" };
     }
 
-    const theme_color = formData.get('theme_color') as string
+    // 1. FUNDAMENTAL: Recuperar foto actual antes de guardar el Draft
+    // Si no lo hacemos, el Draft guardará photo: '' y visualmente desaparecerá.
+    const { data: current } = await supabase.from('profiles').select('avatar_url, avatar_gallery').eq('id', user.id).maybeSingle();
 
     const profileData: ProfileData = {
         personalInfo: {
             name: full_name.split(' ')[0] || '',
             lastName: full_name.split(' ').slice(1).join(' ') || '',
             role,
-            photo: '', // Se gestiona aparte
-            photos: ['', '', ''],
+            photo: current?.avatar_url || '',
+            photos: ensureMinLength(current?.avatar_gallery || [], 3),
             contactInfo: contact_info
         },
         skills,
@@ -246,35 +237,8 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         themeColor: theme_color
     };
 
-    // Para mantener la consistencia con el editor, también recuperamos la foto actual
-    const { data: currentProfile } = await supabase.from('profiles').select('avatar_url, avatar_gallery').eq('id', user.id).single();
-    if (currentProfile) {
-        profileData.personalInfo.photo = currentProfile.avatar_url || '';
-        profileData.personalInfo.photos = ensureMinLength(currentProfile.avatar_gallery || [], 3);
-    }
-
-    // 1. Marcar versiones anteriores como no actuales
-    await supabase
-        .from('drafts')
-        .update({ is_current: false })
-        .eq('user_id', user.id);
-
-    // 2. Insertar nueva versión (Draft)
-    const { error: draftError } = await supabase
-        .from('drafts')
-        .insert({
-            user_id: user.id,
-            content: profileData,
-            is_current: true,
-            updated_at: new Date().toISOString()
-        });
-
-    if (draftError) {
-        console.error('Error saving draft:', draftError);
-    }
-
-    // 3. Actualizar perfil principal (Producción)
-    const { error } = await supabase
+    // 2. Guardar en Profiles (DB Principal)
+    const { error: pErr } = await supabase
         .from('profiles')
         .upsert({
             id: user.id,
@@ -290,11 +254,17 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
             },
             theme_color,
             updated_at: new Date().toISOString(),
-        })
+        });
 
-    if (error) {
-        return { success: false, error: error.message };
-    }
+    if (pErr) return { success: false, error: pErr.message };
+
+    // 3. Guardar en Drafts (UI Working Copy)
+    await supabase.from('drafts').upsert({
+        user_id: user.id,
+        content: profileData,
+        is_current: true,
+        updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id, is_current' });
 
     revalidatePath('/')
     return { success: true };
@@ -322,21 +292,22 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResult & {
         .from('assets')
         .getPublicUrl(fileName)
 
-    // Actualizar galería en el perfil
     const { data: profile } = await supabase
         .from('profiles')
         .select('avatar_gallery')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
     const gallery = [...(profile?.avatar_gallery || [])]
+    while (gallery.length <= slotIndex) gallery.push('');
     gallery[slotIndex] = publicUrl
 
     await supabase
         .from('profiles')
         .update({
             avatar_url: publicUrl,
-            avatar_gallery: gallery
+            avatar_gallery: gallery,
+            updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
 
@@ -349,13 +320,27 @@ export async function selectAvatar(url: string): Promise<ActionResult> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Not authenticated' }
 
-    const { error } = await supabase
+    await supabase
         .from('profiles')
-        .update({ avatar_url: url })
+        .update({
+            avatar_url: url,
+            updated_at: new Date().toISOString()
+        })
         .eq('id', user.id)
-
-    if (error) return { success: false, error: error.message }
 
     revalidatePath('/')
     return { success: true }
+}
+
+export async function getPublicProfile(): Promise<ProfileData> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    if (error || !data) return createDefaultProfile();
+    return normalizeProfile(data)
 }
