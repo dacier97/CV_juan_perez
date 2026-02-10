@@ -37,19 +37,32 @@ function normalizeProfile(data: any): ProfileData {
         skills: {
             professional: Array.isArray(data.skills?.professional) ? data.skills.professional : []
         },
-        experience: Array.isArray(data.experience) ? data.experience.map((exp: any, index: number) => ({
-            id: exp.id || index + 1,
-            period: exp.period || '',
-            title: exp.title || '',
-            description: exp.description || '',
-            bullets: Array.isArray(exp.bullets) ? exp.bullets : []
-        })) : [],
-        education: Array.isArray(data.education) ? data.education.map((edu: any, index: number) => ({
-            id: edu.id || index + 1,
-            period: edu.period || '',
-            degree: edu.degree || '',
-            institution: edu.institution || ''
-        })) : [],
+        experience: Array.isArray(data.experience) ? data.experience.map((exp: any, index: number) => {
+            // Soporte para scripts SQL que usan company/role en vez de title
+            let title = exp.title || '';
+            if (!title && exp.role && exp.company) {
+                title = `${exp.role} — ${exp.company}`;
+            } else if (!title && exp.role) {
+                title = exp.role;
+            }
+
+            return {
+                id: exp.id || index + 1,
+                period: exp.period || '',
+                title: title,
+                description: exp.description || '',
+                bullets: Array.isArray(exp.bullets) ? exp.bullets : []
+            };
+        }) : [],
+        education: Array.isArray(data.education) ? data.education.map((edu: any, index: number) => {
+            // Soporte para scripts SQL que usan 'year' en vez de 'period'
+            return {
+                id: edu.id || index + 1,
+                period: edu.period || edu.year || '',
+                degree: edu.degree || '',
+                institution: edu.institution || ''
+            };
+        }) : [],
         objective: data.bio || '', // DB 'bio' maps to UI 'objective'
         themeColor: data.theme_color || '#FF5E1A'
     };
@@ -88,110 +101,98 @@ export async function getProfile(): Promise<ProfileData> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return createDefaultProfile();
 
-    // 1. Intentar cargar el draft más reciente
-    const { data: draft } = await supabase
-        .from('drafts')
-        .select('content')
-        .eq('user_id', user.id)
-        .eq('is_current', true)
-        .single()
+    // 1. Cargar Draft y Perfil en paralelo para comparar estados
+    const [draftRes, profileRes] = await Promise.all([
+        supabase.from('drafts').select('content').eq('user_id', user.id).eq('is_current', true).single(),
+        supabase.from('profiles').select('*').eq('id', user.id).single()
+    ]);
 
-    if (draft) {
-        return draft.content as ProfileData;
+    const draft = draftRes.data;
+    const profile = profileRes.data;
+
+    // 2. Lógica de Decisión: ¿Usar Draft o Perfil Principal?
+    const profileHasData = profile && (profile.full_name?.trim() || profile.bio?.trim());
+
+    if (draft && draft.content) {
+        const d = draft.content as ProfileData;
+
+        // Si el draft existe pero está vacío (por errores previos) y el perfil TIENE DATA, usamos el perfil
+        const draftIsEmpty = !d.personalInfo?.name?.trim() && !d.objective?.trim();
+
+        if (draftIsEmpty && profileHasData) {
+            console.log(`[GET_PROFILE] Draft vacío detectado para ${user.email}, recuperando desde Profiles.`);
+            return normalizeProfile(profile);
+        }
+
+        return d;
     }
 
-    // 2. Intentar cargar el perfil principal
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-    // 3. SI ESTÁ VACÍO (Nuevo Usuario) -> EJECUTAR SEED AUTOMÁTICO
-    const isNewUser = !profile || (!profile.full_name?.trim() && !profile.bio?.trim());
-    const isDemoEmail = user.email === 'juanperez@hotmail.com' || user.email === 'juan_perez@hotmail.com';
-
-    if (isNewUser || (isDemoEmail && (!profile?.full_name || profile?.full_name === 'Nuevo Usuario'))) {
-        console.log(`[SEED] Sembrando datos para ${user.email}`);
-
-        const demoData = {
-            full_name: "Juan Pérez",
-            role: "Project Manager | UX & Digital Strategy",
-            bio: "Profesional con 8+ años liderando productos digitales, transformación tecnológica y equipos ágiles. Experto en UX, analytics y growth.",
-            contact_info: {
-                email: user.email || '',
-                phone: "+57 312 000 0000"
-            },
-            skills: {
-                professional: ["Project Management", "Agile / Scrum", "UX Research", "Data Analytics", "Roadmapping", "Stakeholder Management"]
-            },
-            experience: [
-                {
-                    id: 1,
-                    period: "2021 - Actual",
-                    title: "Senior Product Manager — Globant",
-                    description: "Liderazgo de productos SaaS de alto impacto para clientes internacionales.",
-                    bullets: ["Incremento del 40% en retención.", "Lanzamiento de 3 productos clave.", "Optimización de procesos operativos."]
-                },
-                {
-                    id: 2,
-                    period: "2019 - 2021",
-                    title: "UX Lead — Rappi",
-                    description: "Gestión de la experiencia de usuario para la vertical de fintech.",
-                    bullets: ["Reducción del churn rate en 25%.", "Implementación de cultura de research.", "Dirección de equipo multidisciplinario."]
-                }
-            ],
-            education: [
-                { id: 1, period: "2015 - 2020", degree: "Ingeniería Industrial", institution: "Universidad Nacional" }
-            ],
-            theme_color: "#FF5E1A",
-            avatar_url: "https://randomuser.me/api/portraits/men/44.jpg"
-        };
-
-        // Guardar en Profiles
-        const { error: pErr } = await supabase.from('profiles').upsert({
-            id: user.id,
-            ...demoData,
-            updated_at: new Date().toISOString()
-        });
-        if (pErr) console.error('[SEED ERROR] Profiles:', pErr);
-
-        // Guardar en Drafts
-        const uiData: ProfileData = {
-            personalInfo: {
-                name: "Juan",
-                lastName: "Pérez",
-                role: demoData.role,
-                photo: demoData.avatar_url,
-                photos: [demoData.avatar_url, '', ''],
-                contactInfo: demoData.contact_info
-            },
-            skills: demoData.skills,
-            experience: demoData.experience,
-            education: demoData.education,
-            objective: demoData.bio,
-            themeColor: demoData.theme_color
-        };
-
-        const { error: dErr } = await supabase.from('drafts').upsert({
-            user_id: user.id,
-            content: uiData,
-            is_current: true,
-            updated_at: new Date().toISOString()
-        });
-        if (dErr) console.error('[SEED ERROR] Drafts:', dErr);
-
-        return uiData;
+    // 3. Si no hay draft, pero hay perfil con datos, lo usamos directamente
+    if (profileHasData) {
+        return normalizeProfile(profile);
     }
 
-    return normalizeProfile(profile)
+    // 4. SI TODO ESTÁ VACÍO (Nuevo Usuario) -> SEED PREMIUM JUAN PEREZ
+    console.log(`[SEED] Sembrando datos maestros para ${user.email}`);
+
+    const demoData = {
+        full_name: "Juan Pérez",
+        role: "Senior Project Manager | Infratestructura TI & Transformación Digital",
+        bio: "Gerente de proyectos con más de 10 años liderando iniciativas de transformación digital, infraestructura tecnológica y equipos ágiles.",
+        contact_info: {
+            email: user.email || '',
+            phone: "+57 316 555 8899"
+        },
+        skills: {
+            professional: ["Gestión de Proyectos", "Infraestructura Cloud", "Scrum / Agile", "ITIL", "Automatización"]
+        },
+        experience: [
+            {
+                id: 1,
+                period: "2021-Actual",
+                title: "Senior PM — TechFlow",
+                description: "Liderazgo de migraciones críticas de infraestructura cloud para clientes a nivel nacional.",
+                bullets: ["Migración exitosa de 50+ servidores críticos.", "Reducción de costos operativos en nube en 20%."]
+            },
+            {
+                id: 2,
+                period: "2018-2021",
+                title: "Infra Manager — Telecom Colombia",
+                description: "Gestión y expansión de redes GPON y centro de datos regional.",
+                bullets: ["Optimización del uptime al 99.9%.", "Liderazgo de equipo de 15 técnicos."]
+            }
+        ],
+        education: [
+            { id: 1, period: "2014", degree: "Ingeniería Electrónica", institution: "Universidad Nacional" }
+        ],
+        theme_color: "#FF5E1A",
+        avatar_url: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400"
+    };
+
+    // Crear/Actualizar en Profiles
+    await supabase.from('profiles').upsert({
+        id: user.id,
+        ...demoData,
+        updated_at: new Date().toISOString()
+    });
+
+    const uiData = normalizeProfile({ ...demoData, avatar_gallery: [demoData.avatar_url] });
+
+    // Crear/Actualizar en Drafts (Fundamental para que el editor lo vea)
+    await supabase.from('drafts').upsert({
+        user_id: user.id,
+        content: uiData,
+        is_current: true,
+        updated_at: new Date().toISOString()
+    });
+
+    return uiData;
 }
 
 export async function getPublicProfile(): Promise<ProfileData> {
-    noStore();
     const supabase = await createClient()
 
-    // Intentar traer el draft actual primero para la vista pública también, 
+    // Para la vista pública, no usamos el user_id de la sesión (no hay sesión)
     // o mantener profiles como 'producción'. Usaremos el perfil principal para lo público.
     const { data, error } = await supabase
         .from('profiles')
@@ -234,7 +235,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
             name: full_name.split(' ')[0] || '',
             lastName: full_name.split(' ').slice(1).join(' ') || '',
             role,
-            photo: '', // Se gestiona aparte o lo extraemos si existe
+            photo: '', // Se gestiona aparte
             photos: ['', '', ''],
             contactInfo: contact_info
         },
@@ -244,6 +245,13 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         objective: bio,
         themeColor: theme_color
     };
+
+    // Para mantener la consistencia con el editor, también recuperamos la foto actual
+    const { data: currentProfile } = await supabase.from('profiles').select('avatar_url, avatar_gallery').eq('id', user.id).single();
+    if (currentProfile) {
+        profileData.personalInfo.photo = currentProfile.avatar_url || '';
+        profileData.personalInfo.photos = ensureMinLength(currentProfile.avatar_gallery || [], 3);
+    }
 
     // 1. Marcar versiones anteriores como no actuales
     await supabase
@@ -257,7 +265,8 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         .insert({
             user_id: user.id,
             content: profileData,
-            is_current: true
+            is_current: true,
+            updated_at: new Date().toISOString()
         });
 
     if (draftError) {
@@ -284,68 +293,52 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
         })
 
     if (error) {
-        console.error('Error updating profile:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error.message };
     }
 
     revalidatePath('/')
-    return { success: true }
+    return { success: true };
 }
 
-export async function uploadAvatar(formData: FormData): Promise<ActionResult> {
+export async function uploadAvatar(formData: FormData): Promise<ActionResult & { url?: string }> {
     const supabase = await createClient()
-
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-        return { success: false, error: 'Not authenticated' }
-    }
+    if (!user) return { success: false, error: 'Not authenticated' }
 
     const file = formData.get('avatar') as File
-    const slotIndex = parseInt(formData.get('slotIndex') as string)
-
-    if (!file) {
-        return { success: false, error: 'No file uploaded' }
-    }
+    const slotIndex = parseInt(formData.get('slotIndex') as string || '0')
+    if (!file) return { success: false, error: 'No file uploaded' }
 
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}-${slotIndex}-${Date.now()}.${fileExt}`
-    const filePath = `avatars/${fileName}`
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-    // Upload to bucket
     const { error: uploadError } = await supabase.storage
         .from('assets')
-        .upload(filePath, file)
+        .upload(fileName, file)
 
-    if (uploadError) {
-        return { success: false, error: `Error de Storage: ${uploadError.message}` }
-    }
+    if (uploadError) return { success: false, error: uploadError.message }
 
     const { data: { publicUrl } } = supabase.storage
         .from('assets')
-        .getPublicUrl(filePath)
+        .getPublicUrl(fileName)
 
-    // Get current gallery
+    // Actualizar galería en el perfil
     const { data: profile } = await supabase
         .from('profiles')
         .select('avatar_gallery')
         .eq('id', user.id)
         .single()
 
-    let newGallery = ensureMinLength(profile?.avatar_gallery || [], 3);
-    newGallery[slotIndex] = publicUrl
+    const gallery = [...(profile?.avatar_gallery || [])]
+    gallery[slotIndex] = publicUrl
 
-    // Update gallery and set as active avatar
-    const { error: updateError } = await supabase
+    await supabase
         .from('profiles')
         .update({
-            avatar_gallery: newGallery,
-            avatar_url: publicUrl
+            avatar_url: publicUrl,
+            avatar_gallery: gallery
         })
         .eq('id', user.id)
-
-    if (updateError) {
-        return { success: false, error: `Error al actualizar perfil: ${updateError.message}` }
-    }
 
     revalidatePath('/')
     return { success: true, url: publicUrl }
@@ -353,18 +346,15 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResult> {
 
 export async function selectAvatar(url: string): Promise<ActionResult> {
     const supabase = await createClient()
-
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Not authenticated' };
+    if (!user) return { success: false, error: 'Not authenticated' }
 
     const { error } = await supabase
         .from('profiles')
         .update({ avatar_url: url })
         .eq('id', user.id)
 
-    if (error) {
-        return { success: false, error: error.message }
-    }
+    if (error) return { success: false, error: error.message }
 
     revalidatePath('/')
     return { success: true }

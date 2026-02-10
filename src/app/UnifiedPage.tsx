@@ -47,8 +47,14 @@ export default function UnifiedPage({ initialUser, initialData }: { initialUser:
     useAutoSave();
 
     useEffect(() => {
-        // Solo inicializar si no hay datos en el store (para evitar sobrescribir durante la sesión)
-        if (initialData && !cvData) {
+        // Lógica de hidratación: 
+        // Sobrescribimos el store local si:
+        // 1. No hay nada (null)
+        // 2. Lo que hay está vacío (sin nombre ni objetivo) pero el servidor TRAE datos
+        const isStoreEmpty = !cvData || (!cvData.personalInfo?.name?.trim() && !cvData.objective?.trim());
+
+        if (initialData && isStoreEmpty) {
+            console.log("[UnifiedPage] Hidratando con datos del servidor (Store local estaba vacío)");
             setCVData(initialData);
         }
 
