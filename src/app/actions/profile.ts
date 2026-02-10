@@ -99,6 +99,8 @@ export async function getProfile(): Promise<ProfileData> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return createDefaultProfile();
 
+    console.log(`[GET_PROFILE] Fetching data for user: ${user.email} (ID: ${user.id})`);
+
     // 1. Cargar Draft y Perfil en paralelo
     const [draftRes, profileRes] = await Promise.all([
         supabase.from('drafts').select('content, updated_at').eq('user_id', user.id).eq('is_current', true).maybeSingle(),
@@ -111,39 +113,42 @@ export async function getProfile(): Promise<ProfileData> {
     // 2. ¿Hay datos reales en la tabla Profiles? (Ej. tras un SQL manual)
     const profileHasRealData = profile && (profile.full_name?.trim() || profile.bio?.trim());
 
-    // 3. Lógica de Sincronización: Si el perfil es más nuevo o el draft está vacío, priorizar perfil
+    // 3. Lógica de Sincronización
     if (profileHasRealData) {
         const pNormalized = normalizeProfile(profile);
 
         if (!draft || !draft.content) {
+            console.log(`[GET_PROFILE] No draft found. Using Profile data.`);
             return pNormalized;
         }
 
         const d = draft.content as ProfileData;
         const draftIsEmpty = !d.personalInfo?.name?.trim() && !d.objective?.trim();
 
-        // Si el draft está vacío pero el perfil tiene info, mandamos el perfil
         if (draftIsEmpty) {
-            console.log(`[GET_PROFILE] Recuperando datos desde Profiles para ${user.email}`);
+            console.log(`[GET_PROFILE] Draft is empty. Recovering from Profile.`);
             return pNormalized;
         }
 
         // Si el perfil fue actualizado manualmente (SQL) después del último draft, priorizar perfil
         if (profile.updated_at && draft.updated_at && new Date(profile.updated_at) > new Date(draft.updated_at)) {
-            console.log(`[GET_PROFILE] Perfil más reciente que draft (SQL update). Sincronizando.`);
+            console.log(`[GET_PROFILE] Profile is newer than Draft (SQL update). Syncing.`);
             return pNormalized;
         }
 
+        console.log(`[GET_PROFILE] Returning existing Draft.`);
         return d;
     }
 
-    // 4. SI TODO ESTÁ VACÍO -> SEED PREMIUM
-    console.log(`[SEED] Sembrando datos para ${user.email}`);
+    // 4. SI TODO ESTÁ VACÍO -> SEED REALISTA
+    console.log(`[SEED] Sembrando datos realistas para ${user.email}`);
+
+    const bioRealista = "Senior Project Manager con más de 12 años de trayectoria internacional liderando proyectos de infraestructura tecnológica de gran escala y transformación digital. Experto en Cloud Computing (AWS/Azure), metodologías ágiles (Scrum/Kanban) y marcos de gobernanza ITIL. Especialista en la gestión de equipos multidisciplinarios y la implementación de soluciones de alta disponibilidad que garantizan la continuidad operativa. Reconocido por mi capacidad estratégica para alinear la tecnología con los objetivos de negocio, optimizando presupuestos y reduciendo el Time-to-Market en implementaciones críticas.";
 
     const demoData = {
         full_name: "Juan Pérez",
         role: "Senior Project Manager | Infraestructura TI & Transformación Digital",
-        bio: "Gerente de proyectos con más de 10 años liderando iniciativas de transformación digital, infraestructura tecnológica y equipos ágiles.",
+        bio: bioRealista,
         avatar_url: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=400",
         theme_color: "#FF5E1A",
         contact_info: {
@@ -218,7 +223,6 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
     }
 
     // 1. FUNDAMENTAL: Recuperar foto actual antes de guardar el Draft
-    // Si no lo hacemos, el Draft guardará photo: '' y visualmente desaparecerá.
     const { data: current } = await supabase.from('profiles').select('avatar_url, avatar_gallery').eq('id', user.id).maybeSingle();
 
     const profileData: ProfileData = {
