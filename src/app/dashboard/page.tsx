@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Layout, FileText, Settings, Edit3 } from 'lucide-react';
 import LogoutButton from '@/components/ui/LogoutButton';
+import { seedDemoProfile } from '@/lib/seedDemoProfile';
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -13,6 +14,9 @@ export default async function DashboardPage() {
     if (!user) {
         redirect('/login');
     }
+
+    // Ejecutar el sembrado de datos DEMO si es necesario (Server Side)
+    await seedDemoProfile(supabase);
 
     return (
         <div className="min-h-screen bg-gray-50 flex">

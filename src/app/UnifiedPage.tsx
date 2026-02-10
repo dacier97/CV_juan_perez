@@ -26,6 +26,7 @@ import { ProfileData } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import { useCVStore } from '@/lib/store';
 import { useAutoSave } from '@/lib/useAutoSave';
+import { seedDemoProfile } from '@/lib/seedDemoProfile';
 
 export default function UnifiedPage({ initialUser }: { initialUser: User | null }) {
     const router = useRouter();
@@ -47,16 +48,27 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     useAutoSave();
 
     useEffect(() => {
-        const loadSession = async () => {
+        const loadSessionAndSeed = async () => {
             const { data } = await supabase.auth.getSession();
-            setUser(data.session?.user ?? null);
+            const currentUser = data.session?.user ?? null;
+            setUser(currentUser);
+
+            // Si hay usuario, sembrar datos demo si el perfil está vacío
+            if (currentUser) {
+                await seedDemoProfile(supabase);
+            }
+
             setLoading(false);
         };
 
-        loadSession();
+        loadSessionAndSeed();
 
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
+        const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                await seedDemoProfile(supabase);
+            }
         });
 
         return () => listener.subscription.unsubscribe();
