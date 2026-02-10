@@ -108,55 +108,59 @@ export async function getProfile(): Promise<ProfileData> {
         .single()
 
     // 3. SI ESTÁ VACÍO (Nuevo Usuario) -> EJECUTAR SEED AUTOMÁTICO
-    if (!profile || (!profile.full_name?.trim() && !profile.bio?.trim())) {
-        console.log(`Seeding demo data for ${user.email}`);
+    const isNewUser = !profile || (!profile.full_name?.trim() && !profile.bio?.trim());
+    const isDemoEmail = user.email === 'juanperez@hotmail.com' || user.email === 'juan_perez@hotmail.com';
+
+    if (isNewUser || (isDemoEmail && (!profile?.full_name || profile?.full_name === 'Nuevo Usuario'))) {
+        console.log(`[SEED] Sembrando datos para ${user.email}`);
 
         const demoData = {
-            full_name: "Juan Perez",
-            role: "Senior Product Manager | UX & Digital Strategy",
+            full_name: "Juan Pérez",
+            role: "Project Manager | UX & Digital Strategy",
             bio: "Profesional con 8+ años liderando productos digitales, transformación tecnológica y equipos ágiles. Experto en UX, analytics y growth.",
             contact_info: {
-                email: user.email || "juan_perez@hotmail.com",
-                phone: "+57 300 555 7788"
+                email: user.email || '',
+                phone: "+57 312 000 0000"
             },
             skills: {
-                professional: ["Product Management", "UX Research", "Scrum / Agile", "Data Analytics", "Roadmapping", "Stakeholder Management"]
+                professional: ["Project Management", "Agile / Scrum", "UX Research", "Data Analytics", "Roadmapping", "Stakeholder Management"]
             },
             experience: [
                 {
                     id: 1,
                     period: "2021 - Actual",
-                    title: "Product Manager — Globant",
-                    description: "Liderazgo de productos SaaS de alto impacto.",
-                    bullets: ["Incremento del 40% en retención.", "Lanzamiento de 3 productos clave.", "Optimización de costos en 15%."]
+                    title: "Senior Product Manager — Globant",
+                    description: "Liderazgo de productos SaaS de alto impacto para clientes internacionales.",
+                    bullets: ["Incremento del 40% en retención.", "Lanzamiento de 3 productos clave.", "Optimización de procesos operativos."]
                 },
                 {
                     id: 2,
                     period: "2019 - 2021",
                     title: "UX Lead — Rappi",
-                    description: "Gestión de UX para plataformas fintech.",
-                    bullets: ["Reducción de churn en 25%.", "Implementación de cultura de research.", "Dirección de equipo de 5 diseñadores."]
+                    description: "Gestión de la experiencia de usuario para la vertical de fintech.",
+                    bullets: ["Reducción del churn rate en 25%.", "Implementación de cultura de research.", "Dirección de equipo multidisciplinario."]
                 }
             ],
             education: [
-                { id: 1, period: "2016", degree: "Ingeniería Industrial", institution: "Universidad Nacional" }
+                { id: 1, period: "2015 - 2020", degree: "Ingeniería Industrial", institution: "Universidad Nacional" }
             ],
             theme_color: "#FF5E1A",
             avatar_url: "https://randomuser.me/api/portraits/men/44.jpg"
         };
 
-        // Guardar en Perfil
-        await supabase.from('profiles').upsert({
+        // Guardar en Profiles
+        const { error: pErr } = await supabase.from('profiles').upsert({
             id: user.id,
             ...demoData,
             updated_at: new Date().toISOString()
         });
+        if (pErr) console.error('[SEED ERROR] Profiles:', pErr);
 
-        // Guardar en Draft
+        // Guardar en Drafts
         const uiData: ProfileData = {
             personalInfo: {
                 name: "Juan",
-                lastName: "Perez",
+                lastName: "Pérez",
                 role: demoData.role,
                 photo: demoData.avatar_url,
                 photos: [demoData.avatar_url, '', ''],
@@ -169,12 +173,13 @@ export async function getProfile(): Promise<ProfileData> {
             themeColor: demoData.theme_color
         };
 
-        await supabase.from('drafts').upsert({
+        const { error: dErr } = await supabase.from('drafts').upsert({
             user_id: user.id,
             content: uiData,
             is_current: true,
             updated_at: new Date().toISOString()
         });
+        if (dErr) console.error('[SEED ERROR] Drafts:', dErr);
 
         return uiData;
     }
