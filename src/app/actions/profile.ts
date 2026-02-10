@@ -82,6 +82,7 @@ function ensureMinLength(arr: string[], min: number): string[] {
 }
 
 export async function getProfile(): Promise<ProfileData> {
+    noStore();
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -99,19 +100,86 @@ export async function getProfile(): Promise<ProfileData> {
         return draft.content as ProfileData;
     }
 
-    // 2. Fallback al perfil principal si no hay draft
-    const { data, error } = await supabase
+    // 2. Intentar cargar el perfil principal
+    const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
 
-    if (error) {
-        console.error('Error fetching profile:', error)
-        return createDefaultProfile();
+    // 3. SI ESTÁ VACÍO (Nuevo Usuario) -> EJECUTAR SEED AUTOMÁTICO
+    if (!profile || (!profile.full_name?.trim() && !profile.bio?.trim())) {
+        console.log(`Seeding demo data for ${user.email}`);
+
+        const demoData = {
+            full_name: "Juan Perez",
+            role: "Senior Product Manager | UX & Digital Strategy",
+            bio: "Profesional con 8+ años liderando productos digitales, transformación tecnológica y equipos ágiles. Experto en UX, analytics y growth.",
+            contact_info: {
+                email: user.email || "juan_perez@hotmail.com",
+                phone: "+57 300 555 7788"
+            },
+            skills: {
+                professional: ["Product Management", "UX Research", "Scrum / Agile", "Data Analytics", "Roadmapping", "Stakeholder Management"]
+            },
+            experience: [
+                {
+                    id: 1,
+                    period: "2021 - Actual",
+                    title: "Product Manager — Globant",
+                    description: "Liderazgo de productos SaaS de alto impacto.",
+                    bullets: ["Incremento del 40% en retención.", "Lanzamiento de 3 productos clave.", "Optimización de costos en 15%."]
+                },
+                {
+                    id: 2,
+                    period: "2019 - 2021",
+                    title: "UX Lead — Rappi",
+                    description: "Gestión de UX para plataformas fintech.",
+                    bullets: ["Reducción de churn en 25%.", "Implementación de cultura de research.", "Dirección de equipo de 5 diseñadores."]
+                }
+            ],
+            education: [
+                { id: 1, period: "2016", degree: "Ingeniería Industrial", institution: "Universidad Nacional" }
+            ],
+            theme_color: "#FF5E1A",
+            avatar_url: "https://randomuser.me/api/portraits/men/44.jpg"
+        };
+
+        // Guardar en Perfil
+        await supabase.from('profiles').upsert({
+            id: user.id,
+            ...demoData,
+            updated_at: new Date().toISOString()
+        });
+
+        // Guardar en Draft
+        const uiData: ProfileData = {
+            personalInfo: {
+                name: "Juan",
+                lastName: "Perez",
+                role: demoData.role,
+                photo: demoData.avatar_url,
+                photos: [demoData.avatar_url, '', ''],
+                contactInfo: demoData.contact_info
+            },
+            skills: demoData.skills,
+            experience: demoData.experience,
+            education: demoData.education,
+            objective: demoData.bio,
+            themeColor: demoData.theme_color
+        };
+
+        await supabase.from('drafts').upsert({
+            user_id: user.id,
+            content: uiData,
+            is_current: true,
+            updated_at: new Date().toISOString()
+        });
+
+        return uiData;
     }
 
-    return normalizeProfile(data)
+    return normalizeProfile(profile)
 }
 
 export async function getPublicProfile(): Promise<ProfileData> {

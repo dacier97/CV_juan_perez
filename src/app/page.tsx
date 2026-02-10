@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import UnifiedPage from './UnifiedPage';
 import { Metadata } from 'next';
-import { seedDemoProfile } from '@/lib/seedDemoProfile';
 import { getProfile } from '@/app/actions/profile';
 
 export const dynamic = 'force-dynamic';
@@ -16,12 +15,7 @@ export default async function Home() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Ejecutar seed en el servidor si hay usuario
-    if (user) {
-        await seedDemoProfile();
-    }
-
-    // 2. Obtener los datos del perfil actual (incluyendo drafts) directamente en el servidor
+    // Obtener los datos del perfil actual (getProfile se encarga del seed internamente si está vacío)
     const profileData = await getProfile();
 
     return <UnifiedPage initialUser={user} initialData={profileData} />;

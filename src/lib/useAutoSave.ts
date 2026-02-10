@@ -9,26 +9,33 @@ import { createClient } from '@/lib/supabase/client';
 export function useAutoSave() {
     const { cvData, setIsSaving, setLastSaved } = useCVStore();
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const initialLoadRef = useRef(true);
+    const lastSavedDataRef = useRef<string | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
-        // Skip initial mount to prevent saving immediately on load
-        if (initialLoadRef.current) {
-            initialLoadRef.current = false;
+        if (!cvData) return;
+
+        // Serializar para comparación profunda simple
+        const currentDataStr = JSON.stringify(cvData);
+
+        // Si es la primera vez que cargamos datos, los marcamos como "guardados" para no disparar save inmediatamente
+        if (lastSavedDataRef.current === null) {
+            lastSavedDataRef.current = currentDataStr;
             return;
         }
 
-        if (!cvData) return;
+        // Si los datos no han cambiado desde la última vez (por contenido, no por referencia), no hacemos nada
+        if (currentDataStr === lastSavedDataRef.current) {
+            return;
+        }
 
         // Limpiar el timeout anterior
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
 
-        // Debounce de 1.5 segundos
+        // Debounce de 2 segundos para dar más margen en producción
         timeoutRef.current = setTimeout(async () => {
-            // Verificar sesión antes de intentar guardar
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
@@ -49,6 +56,7 @@ export function useAutoSave() {
 
                 if (result.success) {
                     setLastSaved(new Date());
+                    lastSavedDataRef.current = currentDataStr; // Actualizar el ref de datos guardados
                     console.log('Autosave successful:', new Date().toLocaleTimeString());
                 } else {
                     console.error('Autosave failed:', result.error);
@@ -58,7 +66,7 @@ export function useAutoSave() {
             } finally {
                 setIsSaving(false);
             }
-        }, 1500);
+        }, 2000);
 
         return () => {
             if (timeoutRef.current) {

@@ -47,8 +47,8 @@ export default function UnifiedPage({ initialUser, initialData }: { initialUser:
     useAutoSave();
 
     useEffect(() => {
-        // Inicializar con la data del servidor si existe
-        if (initialData) {
+        // Solo inicializar si no hay datos en el store (para evitar sobrescribir durante la sesión)
+        if (initialData && !cvData) {
             setCVData(initialData);
         }
 
