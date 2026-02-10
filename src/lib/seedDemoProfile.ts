@@ -3,29 +3,36 @@ import { ProfileData } from './types';
 
 /**
  * Script de servidor para sembrar datos DEMO automáticamente.
- * Se ejecuta exclusivamente en el servidor para garantizar que la sesión (cookies)
- * y el RLS funcionen correctamente.
  */
 export async function seedDemoProfile() {
     const supabase = await createClient();
 
-    // 1. Obtener usuario actual desde la sesión del servidor
+    // 1. Obtener usuario actual
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+        console.log('Seed: No hay usuario autenticado');
+        return;
+    }
 
     const userId = user.id;
 
-    // 2. Verificar si ya existe un perfil con contenido
+    // 2. Verificar si el perfil está realmente vacío
+    // Consultamos si existe el registro y si tiene contenido significativo
     const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, bio')
         .eq('id', userId)
         .single();
 
-    // Si ya existe nombre o bio, no sembramos nada nuevo
-    if (profile?.full_name || profile?.bio) {
+    // Consideramos "vacío" si no hay registro, o si el nombre y bio son nulos/vacíos
+    const isEmpty = !profile || (!profile.full_name?.trim() && !profile.bio?.trim());
+
+    if (!isEmpty) {
+        console.log('Seed: El perfil ya tiene contenido, saltando sembrado');
         return;
     }
+
+    console.log(`Seed: Sembrando datos demo para el usuario ${user.email} (${userId})`);
 
     // 3. Datos DEMO Profesionales (Juan Perez)
     const demoData = {
@@ -33,7 +40,7 @@ export async function seedDemoProfile() {
         role: "Senior Product Manager | UX & Digital Strategy",
         bio: "Profesional con 8+ años liderando productos digitales, transformación tecnológica y equipos ágiles. Experto en UX, analytics y growth.",
         contact_info: {
-            email: "juan_perez@hotmail.com",
+            email: user.email || "juan_perez@hotmail.com",
             phone: "+57 300 555 7788"
         },
         skills: {
@@ -82,14 +89,18 @@ export async function seedDemoProfile() {
         avatar_url: "https://randomuser.me/api/portraits/men/44.jpg"
     };
 
-    // 4. Insertar en 'profiles' usando el ID del usuario
-    await supabase.from('profiles').upsert({
+    // 4. Upsert en 'profiles'
+    const { error: profileError } = await supabase.from('profiles').upsert({
         id: userId,
         ...demoData,
         updated_at: new Date().toISOString()
     });
 
-    // 5. Sincronizar con 'drafts' para que el editor (cliente) vea la data inmediatamente
+    if (profileError) {
+        console.error('Seed Error (profiles):', profileError);
+    }
+
+    // 5. Sincronizar con 'drafts'
     const uiData: ProfileData = {
         personalInfo: {
             name: "Juan",
@@ -106,10 +117,16 @@ export async function seedDemoProfile() {
         themeColor: demoData.theme_color
     };
 
-    await supabase.from('drafts').upsert({
+    const { error: draftError } = await supabase.from('drafts').upsert({
         user_id: userId,
         content: uiData,
         is_current: true,
         updated_at: new Date().toISOString()
     });
+
+    if (draftError) {
+        console.error('Seed Error (drafts):', draftError);
+    }
+
+    console.log('Seed: Sembrado completado exitosamente');
 }

@@ -27,7 +27,7 @@ import type { User } from '@supabase/supabase-js';
 import { useCVStore } from '@/lib/store';
 import { useAutoSave } from '@/lib/useAutoSave';
 
-export default function UnifiedPage({ initialUser }: { initialUser: User | null }) {
+export default function UnifiedPage({ initialUser, initialData }: { initialUser: User | null, initialData?: ProfileData }) {
     const router = useRouter();
     const [supabase] = useState(() => createClient());
 
@@ -47,6 +47,11 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
     useAutoSave();
 
     useEffect(() => {
+        // Inicializar con la data del servidor si existe
+        if (initialData) {
+            setCVData(initialData);
+        }
+
         const loadSession = async () => {
             const { data } = await supabase.auth.getSession();
             const currentUser = data.session?.user ?? null;
@@ -62,17 +67,10 @@ export default function UnifiedPage({ initialUser }: { initialUser: User | null 
         });
 
         return () => listener.subscription.unsubscribe();
-    }, [supabase]);
+    }, [supabase, initialData, setCVData]);
 
-    // Load content data (Public)
-    useEffect(() => {
-        async function loadContent() {
-            const profile = await getPublicProfile();
-            setCVData(profile);
-            setLoading(false);
-        }
-        loadContent();
-    }, [user, setCVData]);
+    // Ya no necesitamos loadContent() en otro useEffect separado para la carga inicial
+    // ya que lo traemos por props desde el servidor.
 
     const requireAuth = (action: () => void) => {
         if (!user) {
